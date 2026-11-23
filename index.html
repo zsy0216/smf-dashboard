@@ -1680,17 +1680,19 @@
     loading = true;
     buildData().then(applyLive).catch(function (e) {
       if (window.console) console.warn("[SMF] 直连失败，尝试快照", e);
-      if (isFirst || !lastOkAt) {
-        return loadSnapshot().catch(function () {
+      /* 直连失败时每一轮都重新拉一次快照：仓库里的快照会持续更新，
+         不能停在第一次兜底的那一版上（否则页面会永远显示旧时间戳） */
+      return loadSnapshot().catch(function () {
+        if (isFirst || !lastOkAt) {
           /* 不使用任何模拟数据：保持空白骨架，明确标注失败并在 30 秒后自动重试 */
           setStatus("mock", "真实数据加载失败 · 30 秒后自动重试");
           setStamp("加载失败，正在重试…");
           if (timer) clearTimeout(timer);
           timer = setTimeout(function () { load(true); }, 30000);
           throw new Error("handled-retry");
-        });
-      }
-      setStatus("live", "刷新失败 · 显示 " + nowStr().slice(11) + " 前数据");
+        }
+        setStatus("live", "刷新失败 · 显示 " + nowStr().slice(11) + " 前数据");
+      });
     }).catch(function () {}).finally(function () { loading = false; schedule(); });
   }
   var timer = null;

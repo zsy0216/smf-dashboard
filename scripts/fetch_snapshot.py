@@ -22,8 +22,19 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
 
 import requests
+
+
+def _now_cst():
+    """北京时间字符串。云端 runner 是 UTC，绝不能用本地时间当更新时间展示。"""
+    try:
+        from zoneinfo import ZoneInfo
+        tz = ZoneInfo("Asia/Shanghai")
+    except Exception:
+        tz = timezone(timedelta(hours=8))
+    return datetime.now(tz).strftime("%Y-%m-%d %H:%M:%S")
 
 S = requests.Session()
 
@@ -462,7 +473,7 @@ def build():
             "mood": mood,
         }
     return {
-        "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "updated_at": _now_cst(),
         "trade_date": turnover_hist[-1][0],
         "source": "东方财富公开接口（脚本快照，前端直连失败时兜底）",
         "lhb_date": lhb_date,

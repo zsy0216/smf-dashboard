@@ -2,6 +2,8 @@ name: Daily close report
 
 # 每个交易日 15:05（北京时间）生成收盘日报：先刷新快照，再由快照生成日报，一并提交。
 # cron 为 UTC：07:05 UTC = 15:05 CST。周末不跑；节假日靠快照里的 trade_date 幂等覆盖，不会生成错日期的新文件。
+# 抓取被源站限流时：若仓库里已有今日快照（盘中定时任务生成），就用它生成日报；
+# 连今日快照都没有才跳过（任务保持绿色，避免给所有者发失败邮件）。
 on:
   schedule:
     - cron: "5 7 * * 1-5"
@@ -24,6 +26,7 @@ jobs:
           python-version: "3.12"
       - run: pip install requests
       - name: Fetch closing snapshot
+        id: fetch
         run: |
           ok=0
           for i in 1 2 3; do
@@ -31,10 +34,23 @@ jobs:
             echo "fetch attempt $i failed, retry in 30s"
             sleep 30
           done
-          test "$ok" = "1"
+          ready=1
+          if [ "$ok" != "1" ]; then
+            TODAY=$(TZ=Asia/Shanghai date +%F)
+            TD=$(python3 -c "import json;print(json.load(open('data.json')).get('trade_date',''))" 2>/dev/null || echo "")
+            if [ "$TD" = "$TODAY" ]; then
+              echo "::warning::收盘抓取失败，改用今日已有快照（$TD）生成日报"
+            else
+              echo "::warning::收盘抓取失败且无今日快照，跳过本日日报"
+              ready=0
+            fi
+          fi
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
       - name: Build report
+        if: steps.fetch.outputs.ready == '1'
         run: python3 scripts/daily_report.py data.json reports
       - name: Commit if changed
+        if: steps.fetch.outputs.ready == '1'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -42,7 +58,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "no changes"
           else
-            git commit -m "docs: 收盘日报 $(date -u +%Y-%m-%d)"
+            git commit -m "docs: 收盘日报 $(TZ=Asia/Shanghai date +%F)"
             for i in 1 2 3; do
               git pull --rebase origin main && git push && break
               sleep 5

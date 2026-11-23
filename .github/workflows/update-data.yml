@@ -38,8 +38,12 @@ jobs:
             echo "fetch attempt $i failed, retry in 30s"
             sleep 30
           done
-          # 三轮都失败必须让任务明确失败（而不是拿旧文件冒充成功）
-          test "$ok" = "1"
+          # 三轮都失败：本轮不更新（提交步骤会显示无变化），任务保持绿色，
+          # 避免每 10 分钟一封失败邮件；数据是否陈旧页面徽标上看得见。
+          if [ "$ok" != "1" ]; then
+            echo "::warning::本轮快照抓取失败（源站对云 IP 限流），跳过本轮"
+            exit 0
+          fi
           python3 -c "import json; json.load(open('data.json'))"
 
       - name: Commit if changed
