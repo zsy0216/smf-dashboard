@@ -4,6 +4,16 @@
 
 在线地址：https://zsy0216.github.io/smf-dashboard/
 
+## Cloudflare Pages 镜像（可选，国内访问更快）
+
+本仓库是纯静态站，可零改动镜像到 Cloudflare Pages，与 GitHub Pages 共用同一份代码、同一条 Actions 流水线（快照与日报提交到仓库后，两边都会自动更新）：
+
+1. 登录 [Cloudflare 控制台](https://dash.cloudflare.com) → Workers & Pages → Create → Pages → Connect to Git
+2. 选择本仓库 `smf-dashboard`，生产分支选 `main`
+3. 构建设置：Framework preset 选 **None**，Build command 留空，Build output directory 填 `/`
+4. Save and Deploy，得到 `smf-dashboard.pages.dev` 地址；可在 Custom domains 里再绑自己的域名
+5. 仓库根目录的 `_headers` 已写好缓存规则（图表库长缓存、data.json 不缓存），Cloudflare 会自动应用
+
 ## 数据是怎么来的（v2.0 已接入真实数据）
 
 三层架构，全部跑在静态 GitHub Pages 上，不需要任何后端：

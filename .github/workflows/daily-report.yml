@@ -1,0 +1,50 @@
+name: Daily close report
+
+# 每个交易日 15:05（北京时间）生成收盘日报：先刷新快照，再由快照生成日报，一并提交。
+# cron 为 UTC：07:05 UTC = 15:05 CST。周末不跑；节假日靠快照里的 trade_date 幂等覆盖，不会生成错日期的新文件。
+on:
+  schedule:
+    - cron: "5 7 * * 1-5"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapshot-writer
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Fetch closing snapshot
+        run: |
+          ok=0
+          for i in 1 2 3; do
+            if python3 scripts/fetch_snapshot.py data.json; then ok=1; break; fi
+            echo "fetch attempt $i failed, retry in 30s"
+            sleep 30
+          done
+          test "$ok" = "1"
+      - name: Build report
+        run: python3 scripts/daily_report.py data.json reports
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json reports
+          if git diff --cached --quiet; then
+            echo "no changes"
+          else
+            git commit -m "docs: 收盘日报 $(date -u +%Y-%m-%d)"
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push && break
+              sleep 5
+            done
+          fi

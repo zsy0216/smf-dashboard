@@ -238,6 +238,40 @@ def fetch_lhb():
     return date, out
 
 
+def fetch_mood(trade_date):
+    """涨停/跌停/炸板池（push2ex）-> 市场情绪温度。trade_date: YYYY-MM-DD。
+
+    温度公式（0-100，页面与日报同口径）：
+      temp = clamp(30 + 涨停*0.5 - 跌停*1.5 - 炸板率*30 + 最高连板*3)
+    """
+    d = trade_date.replace("-", "")
+    ut = "7eea3edcaed734bea9cbfc24409ed989"
+    base = "https://push2ex.eastmoney.com"
+    try:
+        zt = get_json(f"{base}/getTopicZTPool?ut={ut}&dpt=wz.ztzt&Pageindex=0&pagesize=300&sort=fbt:asc&date={d}")
+        dt = get_json(f"{base}/getTopicDTPool?ut={ut}&dpt=wz.ztzt&Pageindex=0&pagesize=100&sort=fund:asc&date={d}")
+        zb = get_json(f"{base}/getTopicZBPool?ut={ut}&dpt=wz.ztzt&Pageindex=0&pagesize=100&sort=fbt:asc&date={d}")
+    except Exception:
+        return None
+    zpool = (zt.get("data") or {}).get("pool") or []
+    zt_n = (zt.get("data") or {}).get("tc", len(zpool))
+    dt_n = (dt.get("data") or {}).get("tc", 0)
+    zb_n = (zb.get("data") or {}).get("tc", 0)
+    if zt_n == 0 and dt_n == 0 and zb_n == 0:
+        return None
+    max_lbc = max([x.get("lbc", 1) for x in zpool] or [0])
+    lb2 = sum(1 for x in zpool if x.get("lbc", 1) >= 2)
+    lb3 = sum(1 for x in zpool if x.get("lbc", 1) >= 3)
+    fund_yi = sum((x.get("fund") or 0) for x in zpool) / YI
+    zb_rate = zb_n / (zt_n + zb_n) * 100 if (zt_n + zb_n) else 0.0
+    temp = clamp(30 + zt_n * 0.5 - dt_n * 1.5 - zb_rate * 0.30 + max_lbc * 3)
+    level = ("火热" if temp >= 75 else "偏暖" if temp >= 60 else
+             "中性" if temp >= 45 else "偏冷" if temp >= 30 else "冰点")
+    return {"date": trade_date, "zt": zt_n, "dt": dt_n, "zb": zb_n,
+            "zbRate": round(zb_rate, 1), "maxLbc": max_lbc, "lb2": lb2, "lb3": lb3,
+            "fundYi": round(fund_yi, 1), "temp": round(temp), "level": level}
+
+
 def build():
     turnover_hist, prev_same_time = fetch_turnover()
     time.sleep(1)
@@ -286,6 +320,7 @@ def build():
 
     margin_latest = margin_rows[0]
     margin_date = margin_latest["DIM_DATE"][:10]
+    mood = fetch_mood(turnover_hist[-1][0])
 
     data = {}
     for pk, n in PERIODS.items():
@@ -354,7 +389,7 @@ def build():
                 chg = (pk_rows[-1][1] / pk_rows[-1 - n][1] - 1) * 100
             else:
                 chg = b.get("f3") or 0.0
-            sec_rows.append({"name": b["f14"], "chg": round(chg, 2),
+            sec_rows.append({"name": b["f14"], "code": b["f12"], "chg": round(chg, 2),
                              "big": round(big, 1), "margin": round(sup, 1),
                              "vol": round(b.get("f10") or 0, 2)})
         breadth = (sum(1 for b in boards if (b.get(nf) or 0) > 0) / len(boards) * 100) if boards else 50.0
@@ -407,9 +442,11 @@ def build():
             "etf": etf_rows,
             "sectors": sec_rows,
             "lhb": lhb_list,
+            "mood": mood,
         }
     return {
         "updated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "trade_date": turnover_hist[-1][0],
         "source": "东方财富公开接口（脚本快照，前端直连失败时兜底）",
         "lhb_date": lhb_date,
         "margin_date": margin_date,

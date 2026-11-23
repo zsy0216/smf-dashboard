@@ -298,10 +298,21 @@
     <div class="dims" id="dims"></div>
   </section>
 
+  <!-- ======================= 模块：情绪温度 ======================= -->
+  <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+      <div class="panel-no">01</div>
+      <div style="font-size:13px;font-weight:700;">市场情绪温度 · 涨跌停与连板生态</div>
+      <div style="font-size:11px;color:var(--dim);">涨停 / 跌停 / 炸板池 · 当日数据（盘中实时，取最近交易日）</div>
+      <div class="right" id="moodRight" style="margin-left:auto;font-size:11px;color:var(--dim);">--</div>
+    </div>
+    <div id="moodBody" style="font-size:12.5px;color:var(--muted);">正在加载真实数据…</div>
+  </section>
+
   <!-- ======================= 模块一：ETF ======================= -->
   <section class="panel fade-in" style="margin-top:14px;">
     <div class="panel-hd">
-      <div class="panel-no">01</div>
+      <div class="panel-no">02</div>
       <div>
         <div class="panel-t1">机构与长线风向标 · 核心宽基 ETF 资金净流入</div>
         <div class="panel-t2">净流入＝二级市场主力净额（超大单＋大单），盘中实时；金额单位：亿元 / 净占比单位：%</div>
@@ -344,10 +355,10 @@
   <!-- ======================= 模块二：板块轮动 ======================= -->
   <section class="panel fade-in" style="margin-top:14px;">
     <div class="panel-hd">
-      <div class="panel-no">02</div>
+      <div class="panel-no">03</div>
       <div>
         <div class="panel-t1">板块资金轮动热力与量价背离监测</div>
-        <div class="panel-t2">横轴涨跌幅 · 纵轴大单净流入（亿元）· 气泡大小＝超大单净额绝对值</div>
+        <div class="panel-t2">横轴涨跌幅 · 纵轴大单净流入（亿元）· 气泡大小＝超大单净额绝对值 · 点击表格中的板块行可钻取成分股资金流</div>
       </div>
       <div class="right" id="sectorHdRight">--</div>
     </div>
@@ -380,7 +391,7 @@
   <!-- ======================= 模块三：龙虎榜 ======================= -->
   <section class="panel fade-in" style="margin-top:14px;">
     <div class="panel-hd">
-      <div class="panel-no">03</div>
+      <div class="panel-no">04</div>
       <div>
         <div class="panel-t1">短线博弈结构 · 龙虎榜机构与游资席位买卖对比</div>
         <div class="panel-t2">右侧红柱＝买入额 · 左侧绿柱＝卖出额 · 标签为净额（亿元）</div>
@@ -403,7 +414,7 @@
   <!-- ======================= 模块四：数据源与说明 ======================= -->
   <details class="panel info" id="infoPanel">
     <summary>
-      <span class="panel-no">04</span>
+      <span class="panel-no">05</span>
       <span>数据源配置与指标说明</span>
       <span style="font-size:11px;color:var(--dim);font-weight:400;margin-left:6px;">接口映射 / 替换方式 / 看盘口诀 / 口径免责</span>
     </summary>
@@ -482,7 +493,7 @@
 
   <footer>
     A股主力资金流向多维监测看板 · v2.0 · 深色金融主题 / 红涨绿跌（#ef4444 涨·流入 / #10b981 跌·流出）<br>
-    数据来自东方财富公开接口，盘中每 60 秒自动刷新；两融 T+1、龙虎榜为最近交易日，均已在页内标注；不构成投资建议。
+    数据来自东方财富公开接口，盘中每 60 秒自动刷新；两融 T+1、龙虎榜为最近交易日，均已在页内标注；不构成投资建议。<br>收盘日报存档：<a href="https://github.com/zsy0216/smf-dashboard/tree/main/reports" style="color:#8b9bb4;">reports/</a>（每个交易日 15:05 自动生成）
   </footer>
 </main>
 
@@ -526,7 +537,7 @@
           { name: "板块轮动强度", score: 0 },
           { name: "博弈结构质量", score: 0 }
         ],
-        etf: [], sectors: [], lhb: []
+        etf: [], sectors: [], lhb: [], mood: null
       };
     }
     return {
@@ -685,7 +696,7 @@
       var s = arr[i];
       var sig = signalOf(s);
       if (s.big > 0) pos += s.big; else neg += s.big;
-      html += "<tr>"
+      html += '<tr data-bk="' + esc(s.code || "") + '" data-bkname="' + esc(s.name) + '" style="cursor:pointer" title="点击查看成分股资金流 Top10">'
         + '<td><span style="font-weight:600">' + esc(s.name) + '</span></td>'
         + '<td class="num" style="font-weight:600;' + toneStyle(s.chg) + '">' + signNum(s.chg, 2) + '%</td>'
         + '<td class="num" style="font-weight:700;' + toneStyle(s.big) + '">' + signNum(s.big, 1) + '</td>'
@@ -749,6 +760,37 @@
       vt.innerHTML = '<b>' + esc(verdict) + '</b><br><span style="color:#b9a97e">' + esc(detail) + "</span>";
     }
     setText("lhbHdRight", "样本席位 " + list.length + " 类　|　" + D.stamp);
+  }
+
+  function renderMood(D) {
+    var body = $("moodBody");
+    if (!body) return;
+    var mo = D.mood;
+    if (!mo) {
+      body.innerHTML = '<span style="color:var(--dim)">情绪数据暂不可用（涨跌停池未返回，通常为非交易时段或当日池子尚未生成）。</span>';
+      setText("moodRight", D.stamp || "");
+      return;
+    }
+    var tc = mo.temp >= 60 ? COLORS.up : (mo.temp >= 45 ? COLORS.gold : COLORS.down);
+    function cell(k, v, color) {
+      return '<div class="sum-cell"><div class="k">' + k + '</div><div class="v num" style="color:' + color + '">' + v + "</div></div>";
+    }
+    body.innerHTML =
+      '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;">'
+      + '<div style="font-size:34px;font-weight:800;line-height:1;color:' + tc + '" class="num">' + mo.temp + '<span style="font-size:13px;color:var(--muted);font-weight:600;"> /100</span></div>'
+      + '<div><div style="font-weight:700;color:' + tc + '">' + esc(mo.level) + '</div>'
+      + '<div style="font-size:11px;color:var(--dim);">温度 = 30 + 涨停×0.5 − 跌停×1.5 − 炸板率×0.3 + 最高连板×3（截断 0-100）</div></div>'
+      + '<div style="flex:1;min-width:140px;height:8px;border-radius:99px;background:#0d1420;border:1px solid var(--line);overflow:hidden;"><i style="display:block;height:100%;width:' + mo.temp + '%;background:linear-gradient(90deg,#10b981,#e0b64f,#ef4444);"></i></div>'
+      + "</div>"
+      + '<div class="lhb-sum">'
+      + cell("涨停家数", mo.zt + " 家", COLORS.up)
+      + cell("跌停家数", mo.dt + " 家", COLORS.down)
+      + cell("炸板率", mo.zbRate.toFixed(1) + "%（炸板 " + mo.zb + " 家）", mo.zbRate >= 30 ? COLORS.down : COLORS.gold)
+      + cell("最高连板", mo.maxLbc + " 板", COLORS.gold)
+      + cell("连板梯队", "≥2板 " + mo.lb2 + " 家 · ≥3板 " + mo.lb3 + " 家", "#e6edf7")
+      + cell("涨停封板资金", mo.fundYi.toFixed(1) + " 亿", COLORS.up)
+      + "</div>";
+    setText("moodRight", "情绪日期 " + mo.date + "　|　" + (D.stamp || ""));
   }
 
   /* ---------------------------------------------------------------- 图表 */
@@ -1033,6 +1075,7 @@
     var D = DATA[state.period];
     try { renderKpi(D); } catch (e) { if (window.console) console.error("[kpi]", e); }
     try { renderDims(D); } catch (e) { if (window.console) console.error("[dims]", e); }
+    try { renderMood(D); } catch (e) { if (window.console) console.error("[mood]", e); }
     try { renderEtfTable(D); } catch (e) { if (window.console) console.error("[etf]", e); }
     try { renderSectorTable(D); } catch (e) { if (window.console) console.error("[sector]", e); }
     try { renderLhbSummary(D); } catch (e) { if (window.console) console.error("[lhb]", e); }
@@ -1059,6 +1102,7 @@
 
     /* ECharts 多 CDN 兜底加载 */
     var CDNS = [
+      "assets/echarts.min.js",
       "https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js",
       "https://unpkg.com/echarts@5.5.0/dist/echarts.min.js",
       "https://cdn.bootcdn.net/ajax/libs/echarts/5.5.0/echarts.min.js"
