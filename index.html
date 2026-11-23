@@ -118,7 +118,7 @@ if (window.tailwind) {
 
   /* ---------- 布局 ---------- */
   .grid-kpi{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-top:16px; }
-  .grid-2{ display:grid; grid-template-columns:minmax(0,1.55fr) minmax(0,1fr); gap:14px; align-items:start; }
+  .grid-2{ display:grid; grid-template-columns:minmax(0,1.38fr) minmax(0,1fr); gap:14px; align-items:start; }
   .stack{ display:flex; flex-direction:column; gap:14px; margin-top:14px; }
   @media (max-width:1180px){
     .grid-kpi{ grid-template-columns:repeat(2,minmax(0,1fr)); }
@@ -170,6 +170,12 @@ if (window.tailwind) {
   table.tb tbody td:first-child{ text-align:left; }
   table.tb tbody tr:hover{ background:rgba(255,255,255,.025); }
   table.tb tbody tr:last-child td{ border-bottom:0; }
+  /* ETF 明细表：列多且名称长，禁止横向滚动，名称允许折行 */
+  table.tb-etf{ min-width:0; table-layout:auto; }
+  table.tb-etf thead th{ padding:8px 6px; }
+  table.tb-etf tbody td{ padding:9px 6px; }
+  table.tb-etf tbody td:first-child{ white-space:normal; line-height:1.35; max-width:150px; }
+  table.tb-etf thead th:first-child{ min-width:118px; }
   .code{ font-size:10.5px; color:var(--dim); margin-left:6px; font-weight:400; }
 
   /* ---------- 标签 ---------- */
@@ -314,7 +320,7 @@ if (window.tailwind) {
       <div class="panel-no">01</div>
       <div>
         <div class="panel-t1">机构与长线风向标 · 核心宽基 ETF 资金净流入</div>
-        <div class="panel-t2">净流入 ≈ Σ（份额变化 × 当日净值），属估算值，非交易所披露口径</div>
+        <div class="panel-t2">净流入 ≈ Σ（份额变化 × 当日净值），属估算值，非交易所披露口径；金额单位：亿元 / 份额单位：亿份</div>
       </div>
       <div class="right" id="etfHdRight">--</div>
     </div>
@@ -330,14 +336,14 @@ if (window.tailwind) {
         </div>
         <div>
           <div class="tbl-wrap">
-            <table class="tb">
+            <table class="tb tb-etf">
               <thead>
                 <tr>
                   <th>ETF 名称</th>
-                  <th>净流入(亿)</th>
-                  <th>份额变化(亿份)</th>
+                  <th>净流入</th>
+                  <th>份额变化</th>
                   <th>折溢价</th>
-                  <th>规模(亿)</th>
+                  <th>规模</th>
                 </tr>
               </thead>
               <tbody id="etfBody"></tbody>
@@ -1045,7 +1051,7 @@ if (window.tailwind) {
     return {
       backgroundColor: "transparent",
       animationDuration: 700,
-      grid: { left: 6, right: 24, top: 24, bottom: 6, containLabel: true },
+      grid: { left: 6, right: 16, top: 30, bottom: 26, containLabel: true },
       tooltip: Object.assign(baseTooltip(), {
         trigger: "item",
         formatter: function (p) {
@@ -1063,6 +1069,8 @@ if (window.tailwind) {
       xAxis: {
         type: "value",
         name: "涨跌幅 %",
+        nameLocation: "middle",
+        nameGap: 22,
         nameTextStyle: { color: "#64748b", fontSize: 10 },
         axisLine: { show: false },
         axisTick: { show: false },
@@ -1072,7 +1080,9 @@ if (window.tailwind) {
       yAxis: {
         type: "value",
         name: "大单净流入（亿元）",
-        nameTextStyle: { color: "#64748b", fontSize: 10, padding: [0, 0, 6, 0] },
+        nameLocation: "end",
+        nameGap: 12,
+        nameTextStyle: { color: "#64748b", fontSize: 10, padding: [0, 0, 4, 0] },
         axisLine: { show: false },
         axisTick: { show: false },
         splitLine: { lineStyle: { color: "rgba(30,42,60,.7)", type: "dashed" } },
