@@ -41,5 +41,9 @@ jobs:
             echo "no changes"
           else
             git commit -m "chore: update data snapshot $(date -u +%Y-%m-%dT%H:%MZ)"
-            git push
+            # 运行期间 main 可能有新提交（人工推送等），rebase 后再推，失败重试 3 次
+            for i in 1 2 3; do
+              git pull --rebase origin main && git push && break
+              sleep 5
+            done
           fi
