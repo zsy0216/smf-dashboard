@@ -1239,7 +1239,10 @@
       }
       var prevSameTime = null;
       var dates = Object.keys(shT).sort();
-      if (dates.length >= 2 && dates[dates.length - 1] === todayStr && shT[todayStr].length) {
+      /* 沪深分时都齐全才做同时段比较，任一缺失则放弃，避免算出翻倍的假涨幅 */
+      if (dates.length >= 2 && dates[dates.length - 1] === todayStr && shT[todayStr].length
+          && szT[dates[dates.length - 1]] && szT[dates[dates.length - 1]].length
+          && szT[dates[dates.length - 2]] && szT[dates[dates.length - 2]].length) {
         var lastTime = shT[todayStr][shT[todayStr].length - 1].t;
         var prevDate = dates[dates.length - 2];
         prevSameTime = 0;

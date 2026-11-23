@@ -143,7 +143,9 @@ def fetch_turnover():
         # 同时段比较：今日最后一分钟对应的时刻，截取昨日分时累计
         sh_t, sz_t = trends_amounts("1.000001"), trends_amounts("0.399106")
         dates = sorted(sh_t.keys())
-        if len(dates) >= 2 and dates[-1] == today_str:
+        # 沪深两市分时都齐全才做同时段比较；任一缺失就放弃（否则会算出翻倍的假涨幅）
+        if (len(dates) >= 2 and dates[-1] == today_str
+                and sz_t.get(dates[-1]) and sz_t.get(dates[-2])):
             last_time = sh_t[today_str][-1][0]
             prev_same_time = 0.0
             for src in (sh_t, sz_t):
