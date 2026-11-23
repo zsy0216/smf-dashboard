@@ -19,12 +19,26 @@ SMF Dashboard 数据快照生成器（GitHub Actions 定时运行，生成 data.
 import json
 import math
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 import requests
 
 S = requests.Session()
+
+# 全局请求节流：云厂商出口 IP 容易触发源站按频率断连（RST），
+# 把请求间隔拉开到 ≥0.45s、并发降下来后成功率显著更高（本地无此问题，但无害）。
+_pace_lock = threading.Lock()
+_pace_last = [0.0]
+
+
+def _pace():
+    with _pace_lock:
+        wait = 0.45 - (time.time() - _pace_last[0])
+        if wait > 0:
+            time.sleep(wait)
+        _pace_last[0] = time.time()
 S.headers.update({
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                   "(KHTML, like Gecko) Chrome/126.0 Safari/537.36",
@@ -61,6 +75,7 @@ def get_json(url, timeout=12, retries=6):
             u = url.replace("://push2.eastmoney.com",
                             f"://{PUSH2_HOSTS[i % len(PUSH2_HOSTS)]}")
         try:
+            _pace()
             r = S.get(u, timeout=timeout)
             r.raise_for_status()
             return r.json()
@@ -298,13 +313,13 @@ def build():
             if b["f12"] not in union_codes:
                 union_codes.append(b["f12"])
     board_ff, board_pk = {}, {}
-    with ThreadPoolExecutor(max_workers=8) as ex:
+    with ThreadPoolExecutor(max_workers=4) as ex:
         futs = {ex.submit(fflow_daily, f"90.{c}", 21): ("ff", c) for c in union_codes}
         futs.update({ex.submit(price_daily, f"90.{c}", 22): ("pk", c) for c in union_codes})
         for fut, (kind, code) in list(futs.items()):
             (board_ff if kind == "ff" else board_pk)[code] = fut.result()
     etf_ff = {}
-    with ThreadPoolExecutor(max_workers=8) as ex:
+    with ThreadPoolExecutor(max_workers=4) as ex:
         futs = {ex.submit(fflow_daily, s, 21): s for s in ETF_WATCH}
         for fut, secid in list(futs.items()):
             etf_ff[secid] = fut.result()
