@@ -266,7 +266,95 @@ def fetch_lhb():
     return date, out
 
 
-def fetch_mood(trade_date):
+FLOW_HOSTS = ("push2.eastmoney.com", "82.push2.eastmoney.com",
+              "1.push2.eastmoney.com", "48.push2.eastmoney.com",
+              "7.push2.eastmoney.com", "45.push2.eastmoney.com",
+              "63.push2.eastmoney.com", "push2delay.eastmoney.com")
+
+
+def get_json_hosts(url, hosts, timeout=12, retries=8):
+    """在指定域名集合间轮换（分时资金流接口不能走 push2his：它会返回空数据）。"""
+    last = None
+    for i in range(retries):
+        host = hosts[i % len(hosts)]
+        u = url.replace("://push2.eastmoney.com", f"://{host}")
+        try:
+            _pace()
+            r = S.get(u, timeout=timeout)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            last = e
+            time.sleep(1.5 * (i + 1))
+    raise last
+
+
+def fetch_flow():
+    """大盘资金流：沪+深指数分时累计净额曲线（亿元）+ 近10日主力净额。
+
+    分时线列：时间,主力,小单,中单,大单,超大单（累计值，元）。
+    收盘后 push2 仍保留当日分钟线；非交易日/盘前取不到时返回 None，
+    页面改用 flow_daily 展示。
+    """
+    fields = ("fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,"
+              "f57,f58,f59,f60,f61,f62,f63")
+    merged = {}
+    ok = False
+    for secid in ("1.000001", "0.399106"):
+        url = ("https://push2.eastmoney.com/api/qt/stock/fflow/kline/get"
+               f"?lmt=0&klt=1&secid={secid}&{fields}&ut={UT_HIS}")
+        try:
+            rows = get_json_hosts(url, FLOW_HOSTS)["data"]["klines"]
+        except Exception:
+            rows = []
+        if rows:
+            ok = True
+        for row in rows:
+            p = row.split(",")
+            t = p[0][11:16]
+            acc = merged.setdefault(t, [0.0] * 5)
+            for i in range(5):
+                acc[i] += float(p[1 + i])
+    flow = None
+    if ok and merged:
+        times = sorted(merged)
+        flow = {"times": times,
+                "main": [round(merged[t][0] / YI, 2) for t in times],
+                "small": [round(merged[t][1] / YI, 2) for t in times],
+                "mid": [round(merged[t][2] / YI, 2) for t in times],
+                "big": [round(merged[t][3] / YI, 2) for t in times],
+                "super": [round(merged[t][4] / YI, 2) for t in times]}
+    daily = {}
+    for secid in ("1.000001", "0.399106"):
+        for d, main, sup in fflow_daily(secid, 10):
+            a = daily.setdefault(d, [0.0, 0.0])
+            a[0] += main
+            a[1] += sup
+    flow_daily = [{"date": d, "main": round(v[0] / YI, 1), "super": round(v[1] / YI, 1)}
+                  for d, v in sorted(daily.items())]
+    return flow, flow_daily
+
+
+def fetch_stocks():
+    """全市场个股主力净额 Top10 流入/流出（今日）。"""
+    fields = "f12,f14,f2,f3,f6,f62,f184"
+    fs = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23"
+
+    def top(po):
+        url = ("https://push2.eastmoney.com/api/qt/clist/get"
+               f"?pn=1&pz=10&po={po}&np=1&fltt=2&invt=2&fid=f62&fs={fs}&fields={fields}")
+        diff = get_json(url)["data"]["diff"]
+        return [{"name": s["f14"], "code": s["f12"], "price": s["f2"],
+                 "chg": s["f3"], "net": round(s["f62"] / YI, 2),
+                 "ratio": s["f184"], "amt": round(s["f6"] / YI, 1)} for s in diff]
+
+    try:
+        return {"in": top(1), "out": top(0)}
+    except Exception:
+        return None
+
+
+def fetch_mood(trade_date, prev_date=None):
     """涨停/跌停/炸板池（push2ex）-> 市场情绪温度。trade_date: YYYY-MM-DD。
 
     温度公式（0-100，页面与日报同口径）：
@@ -295,9 +383,45 @@ def fetch_mood(trade_date):
     temp = clamp(30 + zt_n * 0.5 - dt_n * 1.5 - zb_rate * 0.30 + max_lbc * 3)
     level = ("火热" if temp >= 75 else "偏暖" if temp >= 60 else
              "中性" if temp >= 45 else "偏冷" if temp >= 30 else "冰点")
-    return {"date": trade_date, "zt": zt_n, "dt": dt_n, "zb": zb_n,
+    mood = {"date": trade_date, "zt": zt_n, "dt": dt_n, "zb": zb_n,
             "zbRate": round(zb_rate, 1), "maxLbc": max_lbc, "lb2": lb2, "lb3": lb3,
             "fundYi": round(fund_yi, 1), "temp": round(temp), "level": level}
+    # 赚钱效应 1：全市场涨跌家数（沪指+深综指成分汇总，f104 涨/f105 跌/f106 平）
+    try:
+        u = get_json("https://push2.eastmoney.com/api/qt/ulist.np/get"
+                     "?fltt=2&invt=2&fields=f104,f105,f106&secids=1.000001,0.399106")
+        diff = u["data"]["diff"]
+        adv = sum(x.get("f104") or 0 for x in diff)
+        dec = sum(x.get("f105") or 0 for x in diff)
+        flat = sum(x.get("f106") or 0 for x in diff)
+        if adv + dec > 0:
+            mood.update({"adv": adv, "dec": dec, "flat": flat,
+                         "upRatio": round(adv / (adv + dec + flat) * 100, 1)})
+    except Exception:
+        pass
+    # 赚钱效应 2：昨日涨停股今日平均涨幅与红盘率（短线接力意愿）
+    if prev_date:
+        try:
+            pd_ = prev_date.replace("-", "")
+            y = get_json(f"{base}/getTopicZTPool?ut={ut}&dpt=wz.ztzt"
+                         f"&Pageindex=0&pagesize=300&sort=fbt:asc&date={pd_}")
+            ypool = (y.get("data") or {}).get("pool") or []
+            secids = [f"{x['m']}.{x['c']}" for x in ypool]
+            chgs = []
+            for i in range(0, len(secids), 100):
+                chunk = ",".join(secids[i:i + 100])
+                q = get_json("https://push2.eastmoney.com/api/qt/ulist.np/get"
+                             f"?fltt=2&invt=2&fields=f3&secids={chunk}")
+                for s in (q["data"] or {}).get("diff") or []:
+                    if isinstance(s.get("f3"), (int, float)):
+                        chgs.append(s["f3"])
+            if chgs:
+                mood.update({"yztDate": prev_date, "yztAvg": round(sum(chgs) / len(chgs), 2),
+                             "yztRed": round(sum(1 for c in chgs if c > 0) / len(chgs) * 100, 1),
+                             "yztN": len(chgs)})
+        except Exception:
+            pass
+    return mood
 
 
 def build():
@@ -348,7 +472,11 @@ def build():
 
     margin_latest = margin_rows[0]
     margin_date = margin_latest["DIM_DATE"][:10]
-    mood = fetch_mood(turnover_hist[-1][0])
+    mood = fetch_mood(turnover_hist[-1][0],
+                      turnover_hist[-2][0] if len(turnover_hist) >= 2 else None)
+    time.sleep(1)
+    flow, flow_daily = fetch_flow()
+    stocks = fetch_stocks()
 
     data = {}
     for pk, n in PERIODS.items():
@@ -471,6 +599,9 @@ def build():
             "sectors": sec_rows,
             "lhb": lhb_list,
             "mood": mood,
+            "flow": flow,
+            "flowDaily": flow_daily,
+            "stocks": stocks,
         }
     return {
         "updated_at": _now_cst(),

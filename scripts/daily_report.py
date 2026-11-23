@@ -45,6 +45,30 @@ if mood:
     lines.append(f"- **情绪温度**：{mood['temp']} 分（{mood['level']}）")
     lines.append(f"- 涨停 {mood['zt']} 家 · 跌停 {mood['dt']} 家 · 炸板 {mood['zb']} 家（炸板率 {mood['zbRate']:.1f}%）")
     lines.append(f"- 最高连板 {mood['maxLbc']} 板 · ≥2板 {mood['lb2']} 家 · ≥3板 {mood['lb3']} 家 · 涨停封板资金 {mood['fundYi']:.1f} 亿")
+    if mood.get("adv") is not None:
+        lines.append(f"- 涨跌家数（沪深）：{mood['adv']} 涨 / {mood['dec']} 跌，上涨占比 {mood['upRatio']:.1f}%")
+    if mood.get("yztAvg") is not None:
+        lines.append(f"- 昨日涨停股今日表现：平均 {mood['yztAvg']:+.2f}%，红盘率 {mood['yztRed']:.1f}%（{mood['yztN']} 只）")
+
+fd = today.get("flowDaily") or []
+if fd:
+    last = fd[-1]
+    lines.append("")
+    lines.append("## 大盘主力资金（两市合计）")
+    lines.append("")
+    lines.append(f"- 今日主力净额：{last['main']:+.1f} 亿（超大单 {last['super']:+.1f} 亿）")
+    prev = fd[-2] if len(fd) >= 2 else None
+    if prev:
+        lines.append(f"- 前一交易日主力净额：{prev['main']:+.1f} 亿")
+
+stocks = today.get("stocks")
+if stocks:
+    lines.append("")
+    lines.append("## 个股主力净额 Top5（今日）")
+    lines.append("")
+    lines.append("**净流入**：" + "、".join(f"{s['name']} {s['net']:+.1f}亿" for s in stocks["in"][:5]))
+    lines.append("")
+    lines.append("**净流出**：" + "、".join(f"{s['name']} {s['net']:+.1f}亿" for s in stocks["out"][:5]))
 
 lines.append("")
 lines.append("## 四维合力（今日口径）")

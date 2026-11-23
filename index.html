@@ -289,6 +289,8 @@
     </div>
   </section>
 
+  <div id="signalBar" style="display:none;margin-top:14px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:rgba(224,182,79,.06);font-size:12.5px;line-height:2;"></div>
+
   <!-- ======================= 四维合力 ======================= -->
   <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
@@ -309,10 +311,22 @@
     <div id="moodBody" style="font-size:12.5px;color:var(--muted);">正在加载真实数据…</div>
   </section>
 
+  <!-- ======================= 模块：大盘资金流 ======================= -->
+  <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+      <div class="panel-no">02</div>
+      <div style="font-size:13px;font-weight:700;">大盘主力资金流 · 两市累计净额曲线</div>
+      <div style="font-size:11px;color:var(--dim);">沪+深指数分时资金流合并 · 累计值（亿元）· 当日数据，不随周期切换</div>
+      <div class="right" id="flowRight" style="margin-left:auto;font-size:11px;color:var(--dim);">--</div>
+    </div>
+    <div class="chart" id="chartFlow" style="height:300px;"></div>
+    <div id="flowNote" style="font-size:11px;color:var(--dim);margin-top:6px;"></div>
+  </section>
+
   <!-- ======================= 模块一：ETF ======================= -->
   <section class="panel fade-in" style="margin-top:14px;">
     <div class="panel-hd">
-      <div class="panel-no">02</div>
+      <div class="panel-no">03</div>
       <div>
         <div class="panel-t1">机构与长线风向标 · 核心宽基 ETF 资金净流入</div>
         <div class="panel-t2">净流入＝二级市场主力净额（超大单＋大单），盘中实时；金额单位：亿元 / 净占比单位：%</div>
@@ -355,7 +369,7 @@
   <!-- ======================= 模块二：板块轮动 ======================= -->
   <section class="panel fade-in" style="margin-top:14px;">
     <div class="panel-hd">
-      <div class="panel-no">03</div>
+      <div class="panel-no">04</div>
       <div>
         <div class="panel-t1">板块资金轮动热力与量价背离监测</div>
         <div class="panel-t2">横轴涨跌幅 · 纵轴大单净流入（亿元）· 气泡大小＝超大单净额绝对值 · 点击表格中的板块行可钻取成分股资金流</div>
@@ -385,13 +399,31 @@
           <tbody id="sectorBody"></tbody>
         </table>
       </div>
+      <div style="margin-top:16px;">
+        <div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">板块多周期热力 · 大单净额（亿）</div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:8px;">同一板块在四个周期的持续性：整行红＝资金持续流入的主线；只有「今日」红＝一日游。-- 表示该周期未进前 5/后 3</div>
+        <div id="matrixBody" style="font-size:12.5px;color:var(--muted);">正在加载真实数据…</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================= 模块：个股资金榜 ======================= -->
+  <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <div class="panel-no">05</div>
+      <div style="font-size:13px;font-weight:700;">个股资金榜 · 全市场主力净额 Top10</div>
+      <div style="font-size:11px;color:var(--dim);">当日数据 · 钱最集中的票与被抛弃的票</div>
+    </div>
+    <div class="grid-2" style="grid-template-columns:1fr 1fr;">
+      <div><div style="font-weight:700;color:var(--up);margin-bottom:6px;">净流入 Top10</div><div id="stocksIn" style="font-size:12.5px;color:var(--muted);">正在加载真实数据…</div></div>
+      <div><div style="font-weight:700;color:var(--down);margin-bottom:6px;">净流出 Top10</div><div id="stocksOut" style="font-size:12.5px;color:var(--muted);">正在加载真实数据…</div></div>
     </div>
   </section>
 
   <!-- ======================= 模块三：龙虎榜 ======================= -->
   <section class="panel fade-in" style="margin-top:14px;">
     <div class="panel-hd">
-      <div class="panel-no">04</div>
+      <div class="panel-no">06</div>
       <div>
         <div class="panel-t1">短线博弈结构 · 龙虎榜机构与游资席位买卖对比</div>
         <div class="panel-t2">右侧红柱＝买入额 · 左侧绿柱＝卖出额 · 标签为净额（亿元）</div>
@@ -414,7 +446,7 @@
   <!-- ======================= 模块四：数据源与说明 ======================= -->
   <details class="panel info" id="infoPanel">
     <summary>
-      <span class="panel-no">05</span>
+      <span class="panel-no">07</span>
       <span>数据源配置与指标说明</span>
       <span style="font-size:11px;color:var(--dim);font-weight:400;margin-left:6px;">接口映射 / 替换方式 / 看盘口诀 / 口径免责</span>
     </summary>
@@ -537,7 +569,7 @@
           { name: "板块轮动强度", score: 0 },
           { name: "博弈结构质量", score: 0 }
         ],
-        etf: [], sectors: [], lhb: [], mood: null
+        etf: [], sectors: [], lhb: [], mood: null, flow: null, flowDaily: [], stocks: null
       };
     }
     return {
@@ -789,8 +821,154 @@
       + cell("最高连板", mo.maxLbc + " 板", COLORS.gold)
       + cell("连板梯队", "≥2板 " + mo.lb2 + " 家 · ≥3板 " + mo.lb3 + " 家", "#e6edf7")
       + cell("涨停封板资金", mo.fundYi.toFixed(1) + " 亿", COLORS.up)
+      + (mo.adv != null ? cell("涨跌家数（沪深）", mo.adv + " 涨 / " + mo.dec + " 跌", mo.adv >= mo.dec ? COLORS.up : COLORS.down) : "")
+      + (mo.upRatio != null ? cell("上涨占比", mo.upRatio.toFixed(1) + "%", mo.upRatio >= 50 ? COLORS.up : COLORS.down) : "")
+      + (mo.yztAvg != null ? cell("昨涨停今表现（" + mo.yztN + " 只）", (mo.yztAvg > 0 ? "+" : "") + mo.yztAvg.toFixed(2) + "% · 红盘 " + mo.yztRed.toFixed(0) + "%", mo.yztAvg >= 0 ? COLORS.up : COLORS.down) : "")
       + "</div>";
     setText("moodRight", "情绪日期 " + mo.date + "　|　" + (D.stamp || ""));
+  }
+
+  function renderSignals() {
+    var bar = $("signalBar");
+    if (!bar || !DATA.today) return;
+    var T = DATA.today, sigs = [];
+    function yi(v) { return (v > 0 ? "+" : "") + v.toFixed(1) + " 亿"; }
+    if (T.kpi && DATA.d3 && DATA.d3.kpi) {
+      var e0 = T.kpi.etf.v, e3 = DATA.d3.kpi.etf.v;
+      if (e0 > 0 && e3 < 0) sigs.push("宽基 ETF 今日转净流入 " + yi(e0) + "（近3日合计为净流出），慢钱出现回补");
+      if (e0 < 0 && e3 > 0) sigs.push("宽基 ETF 今日转净流出 " + yi(e0) + "（近3日合计为净流入），慢钱转为撤退");
+      var s0 = T.kpi.score.v, s3 = DATA.d3.kpi.score.v;
+      if (s0 - s3 >= 10) sigs.push("合力评分较近3日回升 " + (s0 - s3) + " 分（" + s3 + " → " + s0 + "），资金面边际转强");
+      if (s3 - s0 >= 10) sigs.push("合力评分较近3日回落 " + (s3 - s0) + " 分（" + s3 + " → " + s0 + "），资金面边际转弱");
+      if (T.kpi.margin.v <= -300) sigs.push("融资单日净偿还 " + Math.abs(T.kpi.margin.v).toFixed(0) + " 亿，杠杆资金大幅撤退（T+1 口径）");
+    }
+    var byName = {};
+    ["today", "d3", "d5", "d20"].forEach(function (pk) {
+      (DATA[pk].sectors || []).forEach(function (s) {
+        byName[s.name] = byName[s.name] || {};
+        byName[s.name][pk] = s.big;
+      });
+    });
+    Object.keys(byName).forEach(function (n) {
+      var r = byName[n];
+      if (r.today > 0 && r.d3 > 0 && r.d5 > 0 && r.d20 > 0) sigs.push("「" + n + "」四周期共振流入，是当前最持续的主线方向");
+    });
+    if (T.mood) {
+      if (T.mood.temp >= 80) sigs.push("情绪温度 " + T.mood.temp + " 分处火热区，涨停 " + T.mood.zt + " 家；高位接力需防炸板率抬升");
+      if (T.mood.temp <= 20) sigs.push("情绪温度 " + T.mood.temp + " 分处冰点区，跌停 " + T.mood.dt + " 家；关注错杀后的修复机会");
+      if (T.mood.yztAvg != null && T.mood.yztAvg >= 3) sigs.push("昨日涨停股今日平均 " + (T.mood.yztAvg > 0 ? "+" : "") + T.mood.yztAvg.toFixed(2) + "%，短线赚钱效应强、接力意愿高");
+      if (T.mood.yztAvg != null && T.mood.yztAvg <= -2) sigs.push("昨日涨停股今日平均 " + T.mood.yztAvg.toFixed(2) + "%，接力资金被闷，短线情绪转差");
+    }
+    if (T.flow && T.flow.main && T.flow.main.length) {
+      var fm = T.flow.main[T.flow.main.length - 1];
+      sigs.push("大盘主力全天累计净额 " + yi(fm) + (fm >= 0 ? "，真金白银净买入" : "，整体仍在净卖出"));
+    }
+    if (!sigs.length) { bar.style.display = "none"; return; }
+    bar.style.display = "block";
+    bar.innerHTML = '<b style="color:var(--gold);">异动信号</b>　' + sigs.map(function (s) {
+      return '<span style="display:inline-block;margin:2px 6px 2px 0;padding:2px 10px;border:1px solid var(--line);border-radius:99px;background:#0d1420;">' + esc(s) + "</span>";
+    }).join("");
+  }
+
+  function renderFlow() {
+    var T = DATA.today;
+    if (!T) return;
+    var note = $("flowNote");
+    if (!echartsReady || !charts.flow) {
+      if (note) note.textContent = T.flow ? "" : "图表库未就绪。";
+      return;
+    }
+    var AX = { axisLine: { lineStyle: { color: "#1e2a3c" } }, axisLabel: { color: "#64748b", fontSize: 10 }, splitLine: { lineStyle: { color: "rgba(255,255,255,.05)" } } };
+    if (T.flow && T.flow.times && T.flow.times.length) {
+      var last = T.flow.main[T.flow.main.length - 1];
+      setText("flowRight", "主力累计 " + (last > 0 ? "+" : "") + last.toFixed(1) + " 亿");
+      if (note) note.textContent = "主力＝超大单＋大单。曲线单边上行＝资金持续进场；尾盘翘尾或跳水往往对应抢筹/出逃。";
+      charts.flow.setOption({
+        textStyle: { color: "#8b9bb4" },
+        tooltip: { trigger: "axis", backgroundColor: "#0d1420", borderColor: "#1e2a3c", textStyle: { color: "#e6edf7", fontSize: 12 } },
+        legend: { textStyle: { color: "#8b9bb4", fontSize: 11 }, top: 0 },
+        grid: { left: 52, right: 16, top: 30, bottom: 24 },
+        xAxis: Object.assign({ type: "category", data: T.flow.times, boundaryGap: false }, AX),
+        yAxis: Object.assign({ type: "value", name: "亿" }, AX),
+        series: [
+          { name: "主力", type: "line", data: T.flow.main, smooth: true, symbol: "none", lineStyle: { width: 2.6, color: "#e0b64f" }, itemStyle: { color: "#e0b64f" }, areaStyle: { color: "rgba(224,182,79,.08)" } },
+          { name: "超大单", type: "line", data: T.flow.super, smooth: true, symbol: "none", lineStyle: { width: 1.4, color: "#ef4444" }, itemStyle: { color: "#ef4444" } },
+          { name: "大单", type: "line", data: T.flow.big, smooth: true, symbol: "none", lineStyle: { width: 1.2, color: "#f97316" }, itemStyle: { color: "#f97316" } },
+          { name: "中单", type: "line", data: T.flow.mid, smooth: true, symbol: "none", lineStyle: { width: 1.2, color: "#38bdf8" }, itemStyle: { color: "#38bdf8" } },
+          { name: "小单", type: "line", data: T.flow.small, smooth: true, symbol: "none", lineStyle: { width: 1.2, color: "#94a3b8" }, itemStyle: { color: "#94a3b8" } }
+        ]
+      }, true);
+    } else if (T.flowDaily && T.flowDaily.length) {
+      setText("flowRight", "分时数据盘中提供，当前为日频");
+      if (note) note.textContent = "当前不在交易时段（或分时接口未返回），展示近 10 个交易日主力净额。";
+      charts.flow.setOption({
+        textStyle: { color: "#8b9bb4" },
+        tooltip: { trigger: "axis", backgroundColor: "#0d1420", borderColor: "#1e2a3c", textStyle: { color: "#e6edf7", fontSize: 12 } },
+        grid: { left: 52, right: 16, top: 30, bottom: 24 },
+        xAxis: Object.assign({ type: "category", data: T.flowDaily.map(function (d) { return d.date.slice(5); }) }, AX),
+        yAxis: Object.assign({ type: "value", name: "亿" }, AX),
+        series: [{ name: "主力净额", type: "bar", data: T.flowDaily.map(function (d) {
+          return { value: d.main, itemStyle: { color: d.main >= 0 ? "#ef4444" : "#10b981", borderRadius: [3, 3, 0, 0] } };
+        }) }]
+      }, true);
+    } else {
+      setText("flowRight", "--");
+      if (note) note.textContent = "大盘资金流数据暂不可用。";
+    }
+  }
+
+  function renderMatrix() {
+    var el = $("matrixBody");
+    if (!el) return;
+    var periods = [["today", "今日"], ["d3", "近3日"], ["d5", "近5日"], ["d20", "近20日"]];
+    var byName = {}, order = [];
+    periods.forEach(function (pr) {
+      ((DATA[pr[0]] || {}).sectors || []).forEach(function (s) {
+        if (!byName[s.name]) { byName[s.name] = {}; order.push(s.name); }
+        byName[s.name][pr[0]] = s.big;
+      });
+    });
+    if (!order.length) { el.textContent = "暂无板块数据。"; return; }
+    order.sort(function (a, b) { return (byName[b].today || -1e9) - (byName[a].today || -1e9); });
+    var maxAbs = 1;
+    order.forEach(function (n) { periods.forEach(function (pr) {
+      var v = byName[n][pr[0]]; if (v != null && Math.abs(v) > maxAbs) maxAbs = Math.abs(v);
+    }); });
+    var html = '<table class="tb" style="min-width:560px;"><thead><tr><th>板块</th>'
+      + periods.map(function (pr) { return "<th>" + pr[1] + "</th>"; }).join("") + "</tr></thead><tbody>";
+    order.forEach(function (n) {
+      html += '<tr><td><span style="font-weight:600">' + esc(n) + "</span></td>";
+      periods.forEach(function (pr) {
+        var v = byName[n][pr[0]];
+        if (v == null) { html += '<td style="color:var(--dim)">--</td>'; return; }
+        var a = Math.min(0.55, Math.abs(v) / maxAbs * 0.55 + 0.06);
+        var bg = v >= 0 ? "rgba(239,68,68," + a + ")" : "rgba(16,185,129," + a + ")";
+        html += '<td style="background:' + bg + ';font-weight:600;">' + (v > 0 ? "+" : "") + v.toFixed(1) + "</td>";
+      });
+      html += "</tr>";
+    });
+    el.innerHTML = html + "</tbody></table>";
+  }
+
+  function renderStocks() {
+    var T = DATA.today;
+    var inEl = $("stocksIn"), outEl = $("stocksOut");
+    if (!inEl || !outEl) return;
+    var st = T && T.stocks;
+    if (!st) { inEl.textContent = "个股资金数据暂不可用。"; outEl.textContent = "个股资金数据暂不可用。"; return; }
+    function tbl(rows) {
+      var h = '<table class="tb" style="min-width:0;"><thead><tr><th>股票</th><th>涨跌幅</th><th>主力净额(亿)</th><th>净占比</th></tr></thead><tbody>';
+      rows.forEach(function (s) {
+        var col = s.net >= 0 ? COLORS.up : COLORS.down;
+        h += '<tr><td><span style="font-weight:600">' + esc(s.name) + '</span> <span style="color:var(--dim)">' + esc(s.code) + '</span></td>'
+          + '<td style="color:' + (s.chg >= 0 ? COLORS.up : COLORS.down) + '">' + (s.chg > 0 ? "+" : "") + s.chg + "%</td>"
+          + '<td style="color:' + col + ';font-weight:700;">' + (s.net > 0 ? "+" : "") + s.net.toFixed(2) + "</td>"
+          + '<td style="color:' + col + '">' + (s.ratio > 0 ? "+" : "") + s.ratio + "%</td></tr>";
+      });
+      return h + "</tbody></table>";
+    }
+    inEl.innerHTML = tbl(st["in"]);
+    outEl.innerHTML = tbl(st.out);
   }
 
   /* ---------------------------------------------------------------- 图表 */
@@ -1046,6 +1224,7 @@
       charts.etf = window.echarts.init($("chartEtf"));
       charts.sector = window.echarts.init($("chartSector"));
       charts.lhb = window.echarts.init($("chartLhb"));
+      charts.flow = window.echarts.init($("chartFlow"));
       echartsReady = true;
       renderCharts(DATA[state.period]);
       return true;
@@ -1076,6 +1255,10 @@
     try { renderKpi(D); } catch (e) { if (window.console) console.error("[kpi]", e); }
     try { renderDims(D); } catch (e) { if (window.console) console.error("[dims]", e); }
     try { renderMood(D); } catch (e) { if (window.console) console.error("[mood]", e); }
+    try { renderSignals(); } catch (e) { if (window.console) console.error("[signals]", e); }
+    try { renderFlow(); } catch (e) { if (window.console) console.error("[flow]", e); }
+    try { renderMatrix(); } catch (e) { if (window.console) console.error("[matrix]", e); }
+    try { renderStocks(); } catch (e) { if (window.console) console.error("[stocks]", e); }
     try { renderEtfTable(D); } catch (e) { if (window.console) console.error("[etf]", e); }
     try { renderSectorTable(D); } catch (e) { if (window.console) console.error("[sector]", e); }
     try { renderLhbSummary(D); } catch (e) { if (window.console) console.error("[lhb]", e); }
@@ -1381,7 +1564,78 @@
     }, function (v) { return v && v.list && v.list.length > 0; });
   }
 
-  function fetchMood(tradeDate) {
+  var FLOW_FIELDS = "fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63";
+  function fetchFlowKline(secid) {
+    /* 分时资金流只能走 push2 系域名（push2his 会返回空数据），逐个域名试到拿到非空 klines */
+    var hosts = ["push2.eastmoney.com", "82.push2.eastmoney.com", "1.push2.eastmoney.com",
+                 "48.push2.eastmoney.com", "7.push2.eastmoney.com", "push2delay.eastmoney.com"];
+    var path = "/api/qt/stock/fflow/kline/get?lmt=0&klt=1&secid=" + secid + "&" + FLOW_FIELDS + "&ut=" + UT_HIS;
+    var i = 0;
+    function attempt() {
+      if (i >= hosts.length) return Promise.resolve([]);
+      var h = hosts[i++];
+      return fetchJson("https://" + h + path, 10000).then(function (j) {
+        var rows = (j && j.data && j.data.klines) || [];
+        return rows.length ? rows : attempt();
+      }).catch(function () { return attempt(); });
+    }
+    return attempt();
+  }
+  function fetchFlow() {
+    return Promise.all([
+      safe(fetchFlowKline("1.000001"), []),
+      safe(fetchFlowKline("0.399106"), []),
+      fflowDaily("1.000001", 10),
+      fflowDaily("0.399106", 10)
+    ]).then(function (rs) {
+      var merged = {};
+      [rs[0], rs[1]].forEach(function (rows) {
+        (rows || []).forEach(function (row) {
+          var p = row.split(","), t = p[0].slice(11, 16);
+          var acc = merged[t] || (merged[t] = [0, 0, 0, 0, 0]);
+          for (var i = 0; i < 5; i++) acc[i] += parseFloat(p[1 + i]) || 0;
+        });
+      });
+      var times = Object.keys(merged).sort();
+      var flow = null;
+      if (times.length) {
+        flow = { times: times };
+        ["main", "small", "mid", "big", "super"].forEach(function (k, ki) {
+          flow[k] = times.map(function (t) { return round(merged[t][ki] / YI, 2); });
+        });
+      }
+      var daily = {};
+      [rs[2], rs[3]].forEach(function (rows) {
+        (rows || []).forEach(function (r) {
+          var a = daily[r.date] || (daily[r.date] = [0, 0]);
+          a[0] += r.main; a[1] += r.sup;
+        });
+      });
+      var flowDaily = Object.keys(daily).sort().map(function (d) {
+        return { date: d, main: round(daily[d][0] / YI, 1), super: round(daily[d][1] / YI, 1) };
+      });
+      return { flow: flow, flowDaily: flowDaily };
+    });
+  }
+  function fetchStocks() {
+    var fields = "f12,f14,f2,f3,f6,f62,f184";
+    var fs = "m:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23";
+    function top(po) {
+      var url = "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10&po=" + po
+        + "&np=1&fltt=2&invt=2&fid=f62&fs=" + fs + "&fields=" + fields;
+      return fetchRetry(url, 2).then(function (j) {
+        return ((j.data && j.data.diff) || []).map(function (s) {
+          return { name: s.f14, code: s.f12, price: s.f2, chg: s.f3,
+                   net: round((s.f62 || 0) / YI, 2), ratio: s.f184, amt: round((s.f6 || 0) / YI, 1) };
+        });
+      });
+    }
+    return Promise.all([top(1), top(0)]).then(function (r) {
+      return { "in": r[0], "out": r[1] };
+    });
+  }
+
+  function fetchMood(tradeDate, prevDate) {
     var d = tradeDate.replace(/-/g, "");
     var ut = "7eea3edcaed734bea9cbfc24409ed989", base = "https://push2ex.eastmoney.com";
     function pool(path, size, sort) {
@@ -1408,12 +1662,56 @@
       });
       var zbRate = (ztN + zbN) ? zbN / (ztN + zbN) * 100 : 0;
       var temp = clamp(30 + ztN * 0.5 - dtN * 1.5 - zbRate * 0.30 + maxLbc * 3);
-      return {
+      var mood = {
         date: tradeDate, zt: ztN, dt: dtN, zb: zbN, zbRate: round(zbRate, 1),
         maxLbc: maxLbc, lb2: lb2, lb3: lb3, fundYi: round(fund / YI, 1),
         temp: Math.round(temp),
         level: temp >= 75 ? "火热" : temp >= 60 ? "偏暖" : temp >= 45 ? "中性" : temp >= 30 ? "偏冷" : "冰点"
       };
+      var extra = [];
+      /* 赚钱效应 1：全市场涨跌家数 */
+      extra.push(safe(fetchRetry("https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2&fields=f104,f105,f106&secids=1.000001,0.399106", 2), null)
+        .then(function (j) {
+          var diff = (j && j.data && j.data.diff) || [];
+          var adv = 0, dec = 0, flat = 0;
+          diff.forEach(function (x) { adv += x.f104 || 0; dec += x.f105 || 0; flat += x.f106 || 0; });
+          if (adv + dec > 0) {
+            mood.adv = adv; mood.dec = dec; mood.flat = flat;
+            mood.upRatio = round(adv / (adv + dec + flat) * 100, 1);
+          }
+        }));
+      /* 赚钱效应 2：昨日涨停股今日表现 */
+      if (prevDate) {
+        extra.push(safe((function () {
+          var d2 = prevDate.replace(/-/g, "");
+          return fetchRetry(base + "/getTopicZTPool?ut=" + ut + "&dpt=wz.ztzt&Pageindex=0&pagesize=300&sort=fbt:asc&date=" + d2, 2)
+            .then(function (y) {
+              var ypool = (y && y.data && y.data.pool) || [];
+              var secids = ypool.map(function (x) { return x.m + "." + x.c; });
+              var chunks = [];
+              for (var i = 0; i < secids.length; i += 100) chunks.push(secids.slice(i, i + 100).join(","));
+              return Promise.all(chunks.map(function (c) {
+                return safe(fetchRetry("https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2&fields=f3&secids=" + c, 2), null);
+              })).then(function (qs) {
+                var chgs = [];
+                qs.forEach(function (q) {
+                  ((q && q.data && q.data.diff) || []).forEach(function (s) {
+                    if (typeof s.f3 === "number") chgs.push(s.f3);
+                  });
+                });
+                if (chgs.length) {
+                  var sum = 0, red = 0;
+                  chgs.forEach(function (c) { sum += c; if (c > 0) red++; });
+                  mood.yztDate = prevDate;
+                  mood.yztAvg = round(sum / chgs.length, 2);
+                  mood.yztRed = round(red / chgs.length * 100, 1);
+                  mood.yztN = chgs.length;
+                }
+              });
+            });
+        })(), null));
+      }
+      return Promise.all(extra).then(function () { return mood; });
     });
   }
 
@@ -1425,8 +1723,11 @@
     ]).then(function (rs) {
       var turnover = rs[0], boards = rs[1], etfs = rs[2], marginRows = rs[3], lhb = rs[4], shFflow = rs[5];
       var moodP = turnover.hist.length
-        ? safe(fetchMood(turnover.hist[turnover.hist.length - 1].date), null)
+        ? safe(fetchMood(turnover.hist[turnover.hist.length - 1].date,
+                         turnover.hist.length >= 2 ? turnover.hist[turnover.hist.length - 2].date : null), null)
         : Promise.resolve(null);
+      var flowP = safe(fetchFlow(), { flow: null, flowDaily: [] });
+      var stocksP = safe(fetchStocks(), null);
       if (!boards.length || !etfs.length || !marginRows.length || turnover.hist.length < 25) {
         throw new Error("核心接口数据不完整");
       }
@@ -1451,8 +1752,8 @@
       ETF_WATCH.forEach(function (s) {
         jobs.push(fflowDaily(s, 21).then(function (v) { etfFf[s] = v; }));
       });
-      return Promise.all([Promise.all(jobs), moodP]).then(function (r2) {
-        var mood = r2[1];
+      return Promise.all([Promise.all(jobs), moodP, flowP, stocksP]).then(function (r2) {
+        var mood = r2[1], flowRes = r2[2], stocks = r2[3];
         var lhbDate = lhb ? lhb.date : "", lhbList = lhb ? lhb.list : [];
         var net = {};
         lhbList.forEach(function (x) { net[x.name] = x.buy - x.sell; });
@@ -1560,7 +1861,10 @@
             etf: etfRows,
             sectors: secRows,
             lhb: lhbList,
-            mood: mood
+            mood: mood,
+            flow: flowRes.flow,
+            flowDaily: flowRes.flowDaily,
+            stocks: stocks
           };
         });
         return data;
