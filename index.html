@@ -964,7 +964,8 @@ if (window.tailwind) {
   function buildEtfOption(D) {
     var names = [], vals = [], raw = D.etf;
     for (var i = 0; i < raw.length; i++) {
-      names.push(raw[i].name.replace("ETF", "").replace("华泰柏瑞", "华泰柏瑞\n"));
+      /* 横轴用短名：去掉基金公司前缀与 ETF 后缀，避免刻度标签互相压字 */
+      names.push(raw[i].name.replace(/ETF$/, "").replace(/^(华泰柏瑞|南方|华夏|易方达|嘉实|广发|天弘)/, ""));
       vals.push(raw[i].net);
     }
     var data = [];
