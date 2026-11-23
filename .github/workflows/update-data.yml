@@ -30,7 +30,14 @@ jobs:
         run: pip install --quiet requests
 
       - name: Fetch snapshot
-        run: python3 scripts/fetch_snapshot.py data.json
+        # 东方财富对云厂商出口 IP 的 502 是间歇性的，整轮失败时隔 30 秒重试，最多 3 轮
+        run: |
+          for i in 1 2 3; do
+            python3 scripts/fetch_snapshot.py data.json && break
+            echo "fetch attempt $i failed, retry in 30s"
+            sleep 30
+          done
+          test -f data.json && python3 -c "import json; json.load(open('data.json'))"
 
       - name: Commit if changed
         run: |

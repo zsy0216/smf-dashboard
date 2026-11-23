@@ -43,28 +43,28 @@ NET_FIELD = {"today": "f62", "d3": "f267", "d5": "f164", "d20": "f174"}  # d20 �
 RATIO_FIELD = {"today": "f184", "d3": "f268", "d5": "f165", "d20": "f175"}
 
 
-def get_json(url, timeout=12, retries=5):
+PUSH2_HOSTS = ("push2.eastmoney.com", "82.push2.eastmoney.com",
+               "1.push2.eastmoney.com", "48.push2.eastmoney.com",
+               "push2delay.eastmoney.com")
+
+
+def get_json(url, timeout=12, retries=6):
+    """push2 接口逐次轮换域名重试（源站对单个域名/IP 的 502 限流是间歇性的，
+    换域名往往立刻恢复）；其它域名原地退避重试。"""
     last = None
+    is_push2 = "://push2.eastmoney.com" in url
     for i in range(retries):
+        u = url
+        if is_push2:
+            u = url.replace("://push2.eastmoney.com",
+                            f"://{PUSH2_HOSTS[i % len(PUSH2_HOSTS)]}")
         try:
-            r = S.get(url, timeout=timeout)
+            r = S.get(u, timeout=timeout)
             r.raise_for_status()
             return r.json()
-        except Exception as e:  # 网络抖动/源站 502 时退避重试
+        except Exception as e:
             last = e
             time.sleep(2.0 * (i + 1))
-    # push2 有多个独立域名，任一被限流/502 时轮换（编号域名数据与主域名一致，
-    # push2delay 为延迟行情、仅作最后兜底）
-    if "://push2.eastmoney.com" in url:
-        for host in ("82.push2.eastmoney.com", "1.push2.eastmoney.com",
-                     "push2delay.eastmoney.com"):
-            try:
-                r = S.get(url.replace("://push2.eastmoney.com", f"://{host}"),
-                          timeout=timeout)
-                r.raise_for_status()
-                return r.json()
-            except Exception:
-                continue
     raise last
 
 
@@ -237,8 +237,11 @@ def fetch_lhb():
 
 def build():
     turnover_hist, prev_same_time = fetch_turnover()
+    time.sleep(1)
     boards = fetch_boards()
+    time.sleep(1)
     etfs = fetch_etfs()
+    time.sleep(1)
     margin_rows = fetch_margin()
     lhb = fetch_lhb()
     sh_fflow = fflow_daily("1.000001", 10)
