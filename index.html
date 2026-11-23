@@ -6,22 +6,13 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>A股主力资金流向多维监测看板 | Smart Money Flow Dashboard</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-/* Tailwind 仅用于排版微调；核心布局全部写在下方 <style> 内，CDN 不可用时页面仍可正常阅读 */
-if (window.tailwind) {
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          ink: '#070b12', panel: '#111826', panel2: '#0d1420',
-          line: '#1e2a3c', up: '#ef4444', down: '#10b981', gold: '#e0b64f'
-        }
-      }
-    }
-  };
-}
-</script>
+<meta name="description" content="A股主力资金流向多维监测看板：两市成交额、宽基ETF主力净流入、融资净买入、板块资金轮动与龙虎榜席位结构，数据直连东方财富公开接口，盘中自动刷新。">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://push2.eastmoney.com">
+<link rel="preconnect" href="https://push2his.eastmoney.com">
+<link rel="preconnect" href="https://datacenter-web.eastmoney.com">
 <style>
   :root{
     --up:#ef4444;              /* A股习惯：红 = 上涨 / 资金净流入 */
@@ -263,7 +254,7 @@ if (window.tailwind) {
     </div>
     <div class="top-right">
       <span class="badge-live"><span class="dot"></span>多维监测中</span>
-      <span class="badge-mock">模拟数据 MOCK</span>
+      <span class="badge-mock" id="dataStatus">正在连接真实数据…</span>
       <span class="stamp">渲染时间 <b id="renderTime">--</b></span>
       <div class="periods" role="group" aria-label="时间周期切换">
         <button class="pbtn on" id="pv-today" data-period="today" type="button">今日实时</button>
@@ -286,9 +277,9 @@ if (window.tailwind) {
       <div class="spark" id="spark-turnover"></div>
     </div>
     <div class="panel kpi">
-      <div class="kpi-label">头部宽基ETF净申购<span class="kpi-note">机构/长线风向标</span></div>
+      <div class="kpi-label">头部宽基ETF主力净流入<span class="kpi-note">机构/长线风向标</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-etf">--</span><span class="u">亿元</span></div>
-      <div class="kpi-sub"><span class="num" id="kpi-etf-chg">--</span><span>份额变化×净值估算</span></div>
+      <div class="kpi-sub"><span class="num" id="kpi-etf-chg">--</span><span>主力净额占成交额比</span></div>
       <div class="spark" id="spark-etf"></div>
     </div>
     <div class="panel kpi">
@@ -320,7 +311,7 @@ if (window.tailwind) {
       <div class="panel-no">01</div>
       <div>
         <div class="panel-t1">机构与长线风向标 · 核心宽基 ETF 资金净流入</div>
-        <div class="panel-t2">净流入 ≈ Σ（份额变化 × 当日净值），属估算值，非交易所披露口径；金额单位：亿元 / 份额单位：亿份</div>
+        <div class="panel-t2">净流入＝二级市场主力净额（超大单＋大单），盘中实时；金额单位：亿元 / 净占比单位：%</div>
       </div>
       <div class="right" id="etfHdRight">--</div>
     </div>
@@ -329,9 +320,9 @@ if (window.tailwind) {
         <div>
           <div class="chart" id="chartEtf"></div>
           <div class="legend">
-            <span><i style="background:#ef4444"></i>净申购（资金流入）</span>
-            <span><i style="background:#10b981"></i>净赎回（资金流出）</span>
-            <span style="color:var(--dim)">悬停柱体可查看最新份额变化与折溢价率</span>
+            <span><i style="background:#ef4444"></i>主力净流入</span>
+            <span><i style="background:#10b981"></i>主力净流出</span>
+            <span style="color:var(--dim)">悬停柱体可查看主力净占比与折溢价率</span>
           </div>
         </div>
         <div>
@@ -341,7 +332,7 @@ if (window.tailwind) {
                 <tr>
                   <th>ETF 名称</th>
                   <th>净流入</th>
-                  <th>份额变化</th>
+                  <th>主力净占比</th>
                   <th>折溢价</th>
                   <th>规模</th>
                 </tr>
@@ -363,7 +354,7 @@ if (window.tailwind) {
       <div class="panel-no">02</div>
       <div>
         <div class="panel-t1">板块资金轮动热力与量价背离监测</div>
-        <div class="panel-t2">横轴涨跌幅 · 纵轴大单净流入（亿元）· 气泡大小＝融资净买入绝对值</div>
+        <div class="panel-t2">横轴涨跌幅 · 纵轴大单净流入（亿元）· 气泡大小＝超大单净额绝对值</div>
       </div>
       <div class="right" id="sectorHdRight">--</div>
     </div>
@@ -383,7 +374,7 @@ if (window.tailwind) {
               <th>板块名称</th>
               <th>涨跌幅</th>
               <th>大单净流入(亿)</th>
-              <th>融资净买入(亿)</th>
+              <th>超大单净额(亿)</th>
               <th style="text-align:center">资金信号</th>
             </tr>
           </thead>
@@ -425,7 +416,7 @@ if (window.tailwind) {
     </summary>
     <div class="info-bd">
 
-      <h4>一、接口映射表（当前为前端内置模拟数据，字段结构已按真实接口设计）</h4>
+      <h4>一、接口映射表（已接入真实数据：浏览器直连东方财富公开接口，失败时回退仓库内 data.json 快照）</h4>
       <div class="tbl-wrap">
         <table class="tb" style="min-width:720px;">
           <thead>
@@ -433,14 +424,14 @@ if (window.tailwind) {
           </thead>
           <tbody>
             <tr>
-              <td>宽基 ETF 份额与净申赎</td>
+              <td>宽基 ETF 主力净流入</td>
               <td style="text-align:left" class="mono" >eastmoney push2 行情 + 基金份额公告</td>
               <td style="text-align:left">AkShare <span class="mono">fund_etf_spot_em</span></td>
-              <td style="text-align:left">份额变化×净值＝估算净流入；T 日份额多为 T+1 披露</td>
+              <td style="text-align:left">二级市场主力净额（f62 系列），盘中实时；份额申赎为 T+1 披露，不做盘中估算</td>
             </tr>
             <tr>
               <td>融资融券余额</td>
-              <td style="text-align:left" class="mono">RPTA_WEB_RZRQ_LSHJ</td>
+              <td style="text-align:left" class="mono">RPTA_RZRQ_LSHJ</td>
               <td style="text-align:left">AkShare <span class="mono">stock_margin_sse / szse</span></td>
               <td style="text-align:left">T 日数据 T+1 上午披露；「两市融资余额」不含融券与北交所</td>
             </tr>
@@ -458,7 +449,7 @@ if (window.tailwind) {
             </tr>
             <tr>
               <td>两市成交额</td>
-              <td style="text-align:left" class="mono">qt.gtimg.cn q=sh000001,sz399001</td>
+              <td style="text-align:left" class="mono">push2 ulist q=1.000001,0.399106</td>
               <td style="text-align:left">Tushare <span class="mono">daily</span> 汇总</td>
               <td style="text-align:left">沪市＋深市合计，不含北交所</td>
             </tr>
@@ -466,10 +457,10 @@ if (window.tailwind) {
         </table>
       </div>
 
-      <h4>二、如何替换为真实数据（三步）</h4>
-      <p><b style="color:#dbe6f5">第 1 步</b>：把本文件的 <span class="mono kv">DATA</span> 常量替换为一次 <span class="mono kv">fetch</span> 结果。所有数值的单位与正负号语义保持不变：净流入为正、净流出为负，金额统一为「亿元」。</p>
-      <p><b style="color:#dbe6f5">第 2 步</b>：新增一个 <span class="mono kv">loadRealData()</span>，把接口返回值映射成同一结构后调用 <span class="mono kv">renderAll()</span>，图表无需改动。</p>
-      <p><b style="color:#dbe6f5">第 3 步</b>：跨域受限时（东方财富接口无 CORS 头），走自建代理或在服务端预取成 JSON，前端只读自有域名的静态文件。</p>
+      <h4>二、真实数据的接入方式（已实现）</h4>
+      <p><b style="color:#dbe6f5">直连优先</b>：页面底部加载器直接请求东方财富 push2 / push2his / datacenter-web 三个域名（均已实测开放 CORS），在浏览器内组装成与内置 <span class="mono kv">DATA</span> 相同的结构后调用 <span class="mono kv">SMF.update()</span> 渲染，图表配置零改动；交易时段每 60 秒、非交易时段每 300 秒自动刷新。</p>
+      <p><b style="color:#dbe6f5">快照兜底</b>：直连失败（网络受限、接口临时故障）时自动改读同仓库的 <span class="mono kv">data.json</span>——由 GitHub Actions 运行 <span class="mono kv">scripts/fetch_snapshot.py</span> 在交易时段每 10 分钟生成，口径与前端直连完全一致。</p>
+      <p><b style="color:#dbe6f5">状态可见</b>：顶部徽标实时标注当前数据状态（实时数据 / 快照数据 / 模拟数据），两融与龙虎榜的截至日期写在各周期 stamp 里，不会把 T+1 数据冒充实时。</p>
 <pre class="code-block"><span class="cm">// 板块大单净流入：东方财富 push2（f62 单位＝元）</span>
 <span class="kw">async function</span> fetchSectorFlow() {
   <span class="kw">const</span> url = <span class="st">'https://push2.eastmoney.com/api/qt/clist/get'</span>
@@ -511,22 +502,22 @@ if (window.tailwind) {
       </ul>
 
       <h4>五、口径与免责</h4>
-      <p>本页所有数值为前端内置的<b style="color:#fcd34d">模拟数据</b>（MOCK），仅用于交互与视觉演示，用于验证产品结构，<b>不构成任何投资建议</b>。切换时间周期时数值同步变化，但并非真实市场数据。</p>
-      <p>真实接入后须注意：① ETF 净流入是「份额变化×净值」的估算值，与交易所披露口径存在差异；② 两融数据存在 T+1 披露延迟，页面须标注「截至上一交易日」；③ 龙虎榜在 16:30-18:00 期间常只发布部分条目，须标注样本条数与取数时点；④ 涨跌家数与资金流向存在多口径并存（含/不含北交所），差异须并列说明。</p>
+      <p>本页数据来自东方财富公开接口：板块与 ETF 主力资金、两市成交额为盘中实时；融资融券为 T+1 披露（截至上一交易日）；龙虎榜为最近交易日席位聚合。<b>不构成任何投资建议</b>。若顶部徽标显示「加载失败」，说明实时与快照均不可用，页面将保持空白并自动重试——本页不使用任何模拟数据。</p>
+      <p>口径注意：① ETF「净流入」为二级市场主力净额，不是份额申赎，两者方向可能不一致；② 两融数据 T+1 披露，stamp 已标注截至日期；③ 龙虎榜在 16:30-18:00 期间常只发布部分条目，本页取最近交易日全量聚合；④ 成交额为沪市＋深市合计，不含北交所；⑤ 盘中成交额涨跌幅与昨日同时段累计比较，收盘后自动切换为与昨日全天比较。</p>
     </div>
   </details>
 
   <footer>
-    A股主力资金流向多维监测看板 · v1.0 · 深色金融主题 / 红涨绿跌（#ef4444 涨·流入 / #10b981 跌·流出）<br>
-    本页为前端演示，数据为模拟值，不构成投资建议。
+    A股主力资金流向多维监测看板 · v2.0 · 深色金融主题 / 红涨绿跌（#ef4444 涨·流入 / #10b981 跌·流出）<br>
+    数据来自东方财富公开接口，盘中每 60 秒自动刷新；两融 T+1、龙虎榜为最近交易日，均已在页内标注；不构成投资建议。
   </footer>
 </main>
 
 <script>
 /* =========================================================================
  *  A股主力资金流向多维监测看板 —— 单文件应用逻辑
- *  数据全部为模拟值（MOCK），结构对齐东方财富 / AkShare 真实字段，
- *  接入真实 API 只需替换 DATA 并调用 renderAll()，图表配置无需改动。
+ *  内置 DATA 为空白骨架（无模拟数据）；真实数据由页尾加载器直连东方财富接口构建，
+ *  经 window.SMF.update() 注入，图表配置无需改动；直连失败回退 data.json 快照。
  * ========================================================================= */
 (function () {
   "use strict";
@@ -545,203 +536,33 @@ if (window.tailwind) {
   };
 
   /* ---------------------------------------------------------------- 数据层 */
-  var DATA = {
-    today: {
-      label: "今日实时",
-      scope: "单日",
-      stamp: "单日口径 · 模拟收盘快照",
-      kpi: {
-        turnover: { v: 1.42, unit: "万亿", chg: 6.8, chgUnit: "%", hint: "较前一交易日" },
-        etf:      { v: 86.5, chg: 32.4, hint: "较前一日净申购" },
-        margin:   { v: 42.3, chg: 18.6, hint: "较前一日融资余额" },
-        score:    { v: 72, level: "偏多进攻", tone: "up", hint: "四维加权" }
-      },
-      spark: {
-        turnover: [1.18, 1.26, 1.22, 1.31, 1.28, 1.33, 1.36, 1.42],
-        etf:      [12.4, 18.6, -6.2, 24.8, 32.1, 41.6, 58.2, 86.5],
-        margin:   [-18.4, 12.6, 26.4, 8.2, -9.6, 18.4, 31.2, 42.3],
-        score:    [48, 52, 56, 54, 60, 64, 68, 72]
-      },
-      dims: [
-        { name: "ETF 申赎（慢钱）", score: 78 },
-        { name: "杠杆情绪（快钱）", score: 66 },
-        { name: "板块轮动强度", score: 71 },
-        { name: "博弈结构质量", score: 74 }
-      ],
-      etf: [
-        { name: "华泰柏瑞沪深300ETF", code: "510300", net: 32.6, share: 8.42,  premium: 0.03,  aum: 4280 },
-        { name: "南方中证A500ETF",    code: "159352", net: 26.4, share: 22.15, premium: 0.01,  aum: 1680 },
-        { name: "易方达创业板ETF",    code: "159915", net: 16.0, share: 7.02,  premium: -0.02, aum: 780 },
-        { name: "南方中证1000ETF",    code: "512100", net: 21.3, share: 9.74,  premium: 0.12,  aum: 640 },
-        { name: "华夏科创50ETF",      code: "588000", net: -9.8, share: -8.36, premium: -0.05, aum: 1120 }
-      ],
-      sectors: [
-        { name: "半导体",    chg: 1.42,  big: 48.6,  margin: 21.4,  vol: 1.32 },
-        { name: "人工智能",  chg: 0.38,  big: 32.7,  margin: 18.6,  vol: 2.10 },
-        { name: "证券",      chg: 2.86,  big: 41.2,  margin: 12.8,  vol: 1.85 },
-        { name: "医药生物",  chg: 0.74,  big: 9.8,   margin: 5.1,   vol: 1.02 },
-        { name: "国防军工",  chg: 1.96,  big: 15.4,  margin: 7.3,   vol: 1.26 },
-        { name: "红利低波",  chg: 0.52,  big: -12.4, margin: 3.2,   vol: 0.92 },
-        { name: "消费电子",  chg: 3.24,  big: -18.6, margin: 6.4,   vol: 1.44 },
-        { name: "电力设备",  chg: -1.68, big: -26.3, margin: -8.9,  vol: 1.10 }
-      ],
-      lhb: [
-        { name: "机构专用席位",       buy: 42.6, sell: 30.2 },
-        { name: "一线游资·章盟主",    buy: 21.4, sell: 14.6 },
-        { name: "顶级游资·呼家楼",    buy: 16.8, sell: 12.6 },
-        { name: "拉萨天团（散户）",   buy: 18.2, sell: 23.8 },
-        { name: "沪深股通专用",       buy: 12.4, sell: 9.3  },
-        { name: "量化席位·机构专户",  buy: 8.6,  sell: 11.0 }
-      ]
-    },
-
-    d3: {
-      label: "近3日",
-      scope: "3日累计",
-      stamp: "近 3 个交易日累计 · 模拟",
-      kpi: {
-        turnover: { v: 1.36, unit: "万亿", chg: 2.4, chgUnit: "%", hint: "日均，较前 3 日均值" },
-        etf:      { v: 213.4, chg: 68.2, hint: "3 日累计净申购" },
-        margin:   { v: 68.5, chg: 25.9, hint: "3 日累计融资净买入" },
-        score:    { v: 68, level: "偏多进攻", tone: "up", hint: "四维加权" }
-      },
-      spark: {
-        turnover: [1.26, 1.22, 1.31, 1.28, 1.33, 1.30, 1.35, 1.36],
-        etf:      [18.6, -6.2, 24.8, 32.1, 41.6, 58.2, 72.4, 213.4],
-        margin:   [12.6, 26.4, 8.2, -9.6, 18.4, 31.2, 42.3, 68.5],
-        score:    [52, 56, 54, 60, 64, 68, 66, 68]
-      },
-      dims: [
-        { name: "ETF 申赎（慢钱）", score: 82 },
-        { name: "杠杆情绪（快钱）", score: 70 },
-        { name: "板块轮动强度", score: 76 },
-        { name: "博弈结构质量", score: 72 }
-      ],
-      etf: [
-        { name: "华泰柏瑞沪深300ETF", code: "510300", net: 78.2, share: 20.11, premium: 0.04,  aum: 4280 },
-        { name: "南方中证A500ETF",    code: "159352", net: 64.5, share: 54.02, premium: 0.02,  aum: 1680 },
-        { name: "易方达创业板ETF",    code: "159915", net: 21.3, share: 9.36,  premium: 0.05,  aum: 780 },
-        { name: "南方中证1000ETF",    code: "512100", net: 33.6, share: 15.28, premium: 0.18,  aum: 640 },
-        { name: "华夏科创50ETF",      code: "588000", net: 15.8, share: 13.44, premium: -0.09, aum: 1120 }
-      ],
-      sectors: [
-        { name: "半导体",    chg: 3.86,  big: 112.4, margin: 48.2, vol: 1.28 },
-        { name: "人工智能",  chg: 1.24,  big: 78.6,  margin: 41.5, vol: 1.62 },
-        { name: "证券",      chg: 5.42,  big: 96.8,  margin: 32.7, vol: 1.90 },
-        { name: "医药生物",  chg: 1.08,  big: 21.6,  margin: 9.4,  vol: 0.96 },
-        { name: "国防军工",  chg: 2.64,  big: 34.8,  margin: 15.2, vol: 1.20 },
-        { name: "红利低波",  chg: 0.86,  big: -28.4, margin: 6.8,  vol: 0.90 },
-        { name: "消费电子",  chg: 4.12,  big: -41.2, margin: 12.6, vol: 1.38 },
-        { name: "电力设备",  chg: -3.24, big: -58.7, margin: -19.4, vol: 1.06 }
-      ],
-      lhb: [
-        { name: "机构专用席位",       buy: 128.4, sell: 96.2  },
-        { name: "一线游资·章盟主",    buy: 64.2,  sell: 48.6  },
-        { name: "顶级游资·呼家楼",    buy: 52.4,  sell: 41.8  },
-        { name: "拉萨天团（散户）",   buy: 56.8,  sell: 68.4  },
-        { name: "沪深股通专用",       buy: 38.6,  sell: 29.4  },
-        { name: "量化席位·机构专户",  buy: 24.8,  sell: 33.6  }
-      ]
-    },
-
-    d5: {
-      label: "近5日",
-      scope: "5日累计",
-      stamp: "近 5 个交易日累计 · 模拟",
-      kpi: {
-        turnover: { v: 1.31, unit: "万亿", chg: -1.6, chgUnit: "%", hint: "日均，较前 5 日均值" },
-        etf:      { v: 341.8, chg: 104.2, hint: "5 日累计净申购" },
-        margin:   { v: 21.7, chg: -46.8, hint: "5 日累计融资净买入" },
-        score:    { v: 61, level: "启动初期", tone: "up", hint: "四维加权" }
-      },
-      spark: {
-        turnover: [1.22, 1.31, 1.28, 1.33, 1.36, 1.29, 1.34, 1.31],
-        etf:      [-6.2, 24.8, 32.1, 41.6, 58.2, 72.4, 96.8, 341.8],
-        margin:   [26.4, 8.2, -9.6, 18.4, 31.2, 42.3, 12.6, 21.7],
-        score:    [56, 54, 60, 64, 68, 66, 58, 61]
-      },
-      dims: [
-        { name: "ETF 申赎（慢钱）", score: 74 },
-        { name: "杠杆情绪（快钱）", score: 58 },
-        { name: "板块轮动强度", score: 68 },
-        { name: "博弈结构质量", score: 66 }
-      ],
-      etf: [
-        { name: "华泰柏瑞沪深300ETF", code: "510300", net: 124.6, share: 32.04, premium: 0.06,  aum: 4280 },
-        { name: "南方中证A500ETF",    code: "159352", net: 102.7, share: 86.11, premium: 0.03,  aum: 1680 },
-        { name: "易方达创业板ETF",    code: "159915", net: 29.4,  share: 12.89, premium: 0.02,  aum: 780 },
-        { name: "南方中证1000ETF",    code: "512100", net: 48.9,  share: 22.24, premium: 0.21,  aum: 640 },
-        { name: "华夏科创50ETF",      code: "588000", net: 36.2,  share: 30.85, premium: -0.04, aum: 1120 }
-      ],
-      sectors: [
-        { name: "半导体",    chg: 6.42,  big: 186.2, margin: 76.4,  vol: 1.24 },
-        { name: "人工智能",  chg: 0.42,  big: 128.6, margin: 68.2,  vol: 2.40 },
-        { name: "证券",      chg: 8.16,  big: 152.4, margin: 48.6,  vol: 1.96 },
-        { name: "医药生物",  chg: 1.86,  big: 38.4,  margin: 16.8,  vol: 1.04 },
-        { name: "国防军工",  chg: 3.42,  big: 52.6,  margin: 21.4,  vol: 1.18 },
-        { name: "红利低波",  chg: 1.36,  big: -46.8, margin: 11.2,  vol: 0.88 },
-        { name: "消费电子",  chg: 5.86,  big: -68.4, margin: 18.9,  vol: 1.42 },
-        { name: "电力设备",  chg: -5.68, big: -96.4, margin: -32.7, vol: 1.12 }
-      ],
-      lhb: [
-        { name: "机构专用席位",       buy: 206.8, sell: 158.4 },
-        { name: "一线游资·章盟主",    buy: 108.6, sell: 86.4  },
-        { name: "顶级游资·呼家楼",    buy: 84.2,  sell: 71.6  },
-        { name: "拉萨天团（散户）",   buy: 96.4,  sell: 118.2 },
-        { name: "沪深股通专用",       buy: 62.4,  sell: 51.8  },
-        { name: "量化席位·机构专户",  buy: 41.2,  sell: 56.4  }
-      ]
-    },
-
-    d20: {
-      label: "近20日",
-      scope: "20日累计",
-      stamp: "近 20 个交易日累计 · 模拟",
-      kpi: {
-        turnover: { v: 1.24, unit: "万亿", chg: -8.4, chgUnit: "%", hint: "日均，较前 20 日均值" },
-        etf:      { v: 758.2, chg: 216.5, hint: "20 日累计净申购" },
-        margin:   { v: -96.4, chg: -118.1, hint: "20 日累计融资净买入" },
-        score:    { v: 54, level: "多空均衡", tone: "neu", hint: "四维加权" }
-      },
-      spark: {
-        turnover: [1.36, 1.29, 1.34, 1.31, 1.28, 1.26, 1.22, 1.24],
-        etf:      [24.8, 32.1, 41.6, 58.2, 72.4, 96.8, 158.4, 758.2],
-        margin:   [8.2, -9.6, 18.4, 31.2, 42.3, 12.6, -34.8, -96.4],
-        score:    [54, 60, 64, 68, 66, 58, 56, 54]
-      },
-      dims: [
-        { name: "ETF 申赎（慢钱）", score: 61 },
-        { name: "杠杆情绪（快钱）", score: 43 },
-        { name: "板块轮动强度", score: 55 },
-        { name: "博弈结构质量", score: 52 }
-      ],
-      etf: [
-        { name: "华泰柏瑞沪深300ETF", code: "510300", net: 268.4, share: 69.12,  premium: 0.05,  aum: 4280 },
-        { name: "南方中证A500ETF",    code: "159352", net: 241.5, share: 202.44, premium: 0.02,  aum: 1680 },
-        { name: "易方达创业板ETF",    code: "159915", net: 66.4,  share: 29.12,  premium: -0.03, aum: 780 },
-        { name: "南方中证1000ETF",    code: "512100", net: 95.2,  share: 43.31,  premium: 0.16,  aum: 640 },
-        { name: "华夏科创50ETF",      code: "588000", net: 86.7,  share: 73.88,  premium: -0.07, aum: 1120 }
-      ],
-      sectors: [
-        { name: "半导体",    chg: 12.86,  big: 342.6, margin: 142.8, vol: 1.22 },
-        { name: "人工智能",  chg: 4.28,   big: 268.4, margin: 138.6, vol: 1.34 },
-        { name: "证券",      chg: 14.62,  big: 286.4, margin: 96.2,  vol: 1.88 },
-        { name: "医药生物",  chg: 3.16,   big: 72.4,  margin: 28.6,  vol: 1.02 },
-        { name: "国防军工",  chg: 6.28,   big: 98.6,  margin: 41.2,  vol: 1.16 },
-        { name: "红利低波",  chg: 2.84,   big: -86.2, margin: 24.6,  vol: 0.94 },
-        { name: "消费电子",  chg: 9.64,   big: -124.8, margin: 38.4, vol: 1.40 },
-        { name: "电力设备",  chg: -9.42,  big: -186.4, margin: -64.8, vol: 1.14 }
-      ],
-      lhb: [
-        { name: "机构专用席位",       buy: 742.6, sell: 698.4 },
-        { name: "一线游资·章盟主",    buy: 386.2, sell: 402.8 },
-        { name: "顶级游资·呼家楼",    buy: 324.8, sell: 342.6 },
-        { name: "拉萨天团（散户）",   buy: 402.6, sell: 486.2 },
-        { name: "沪深股通专用",       buy: 248.6, sell: 236.4 },
-        { name: "量化席位·机构专户",  buy: 168.4, sell: 214.6 }
-      ]
+  var DATA = (function () {
+    function blank(label, scope) {
+      return {
+        label: label, scope: scope, stamp: "正在加载真实数据…",
+        kpi: {
+          turnover: { v: 0, unit: "万亿", chg: 0, chgUnit: "%", hint: "正在加载" },
+          etf: { v: 0, chg: 0, chgUnit: "%", hint: "正在加载" },
+          margin: { v: 0, chg: 0, hint: "正在加载" },
+          score: { v: 0, level: "加载中", tone: "neu", hint: "四维加权" }
+        },
+        spark: { turnover: [0, 0, 0, 0, 0, 0, 0, 0], etf: [0, 0, 0, 0, 0, 0, 0, 0], margin: [0, 0, 0, 0, 0, 0, 0, 0], score: [0, 0, 0, 0, 0, 0, 0, 0] },
+        dims: [
+          { name: "ETF 资金（慢钱）", score: 0 },
+          { name: "杠杆情绪（快钱）", score: 0 },
+          { name: "板块轮动强度", score: 0 },
+          { name: "博弈结构质量", score: 0 }
+        ],
+        etf: [], sectors: [], lhb: []
+      };
     }
-  };
+    return {
+      today: blank("今日实时", "单日"),
+      d3: blank("近3日", "3日累计"),
+      d5: blank("近5日", "5日累计"),
+      d20: blank("近20日", "20日累计")
+    };
+  })();
 
   /* ---------------------------------------------------------------- 工具 */
   function $(id) { return document.getElementById(id); }
@@ -804,7 +625,7 @@ if (window.tailwind) {
 
     setText("kpi-etf", signNum(k.etf.v, 1));
     var eChg = $("kpi-etf-chg");
-    if (eChg) { eChg.textContent = signNum(k.etf.chg, 1) + " 亿"; eChg.className = "num " + tone(k.etf.chg); }
+    if (eChg) { eChg.textContent = signNum(k.etf.chg, 1) + (k.etf.chgUnit || " 亿"); eChg.className = "num " + tone(k.etf.chg); }
 
     setText("kpi-margin", signNum(k.margin.v, 1));
     var mChg = $("kpi-margin-chg");
@@ -906,6 +727,14 @@ if (window.tailwind) {
 
   function renderLhbSummary(D) {
     var list = D.lhb;
+    if (!list.length) {
+      var lb0 = $("lhbSum");
+      if (lb0) lb0.innerHTML = '<div class="sum-cell"><div class="k">龙虎榜席位</div><div class="v num" style="color:#8b9bb4">加载中…</div></div>';
+      var lvt0 = $("lhbVerdictText");
+      if (lvt0) lvt0.innerHTML = "<b>正在加载真实数据</b>";
+      setText("lhbHdRight", D.stamp);
+      return;
+    }
     var inst = null, hot = 0, retail = null;
     for (var i = 0; i < list.length; i++) {
       var x = list[i];
@@ -994,7 +823,7 @@ if (window.tailwind) {
           return '<div style="font-weight:700;margin-bottom:6px">' + esc(e.name) + ' <span style="color:#64748b;font-weight:400">' + esc(e.code) + "</span></div>"
             + '<div style="line-height:1.9;font-size:12px">'
             + '净流入　<b style="color:' + col + '">' + signNum(e.net, 2) + " 亿元</b><br>"
-            + "最新份额变化　<b>" + signNum(e.share, 2) + " 亿份</b><br>"
+            + "主力净占比　<b>" + signNum(e.share, 2) + "%</b><br>"
             + "折溢价率　<b style=\"color:" + (e.premium >= 0 ? COLORS.up : COLORS.down) + "\">" + signNum(e.premium, 2) + "%</b><br>"
             + "最新规模　<b>" + e.aum.toFixed(0) + " 亿元</b>"
             + "</div>";
@@ -1302,6 +1131,446 @@ if (window.tailwind) {
     refresh: function () { renderAll(); }
   };
 })();
+</script>
+<script>
+
+/* =========================================================================
+ *  SMF Dashboard 真实数据加载器（v2.0）
+ *  策略：浏览器直连东方财富公开接口（已实测开放 CORS）实时构建 DATA，
+ *        push2 在主域名/82/1/push2delay 四个域名间自动轮换，任一被限流即切换；
+ *        每 60 秒（交易时段）/ 300 秒（非交易时段）自动刷新；
+ *        直连失败时回退到同仓库 data.json 快照（GitHub Actions 定时生成，真实数据）；
+ *        两者都失败时页面保持空白骨架并自动重试——本页不使用任何模拟数据。
+ *  口径与 scripts/fetch_snapshot.py 完全一致（同一套公式）：
+ *   - 两市成交额 = 上证指数 + 深证综指成交额（不含北交所）；盘中涨跌幅与昨日同时段比较
+ *   - 板块/ETF「净流入」= 主力净额（超大单+大单）；板块第三列为超大单净额
+ *   - 融资 = RPTA_RZRQ_LSHJ 的 RZJME，T+1 披露，页面 stamp 标注截至日期
+ *   - 龙虎榜 = 最近交易日席位明细聚合（机构专用/沪深股通/拉萨系/其余营业部）
+ *   - 情绪评分 = ETF资金30% + 杠杆情绪20% + 板块广度25% + 博弈结构25%
+ * ========================================================================= */
+(function () {
+  "use strict";
+  var YI = 1e8;
+  var UT_HIS = "b2884a393a59ad64002292a3e90d46a5";
+  var UT_KLINE = "fa5fd1943c7b386f172d6893dbfba10b";
+  var ETF_WATCH = ["1.510300", "0.159352", "0.159915", "1.512100",
+                   "1.588000", "1.510050", "0.159919", "1.512880"];
+  var PERIODS = { today: 1, d3: 3, d5: 5, d20: 20 };
+  var NET_FIELD = { today: "f62", d3: "f267", d5: "f164", d20: "f174" };
+  var RATIO_FIELD = { today: "f184", d3: "f268", d5: "f165", d20: "f175" };
+  var lastOkAt = null;
+
+  function clamp(v, lo, hi) { return Math.max(lo === undefined ? 0 : lo, Math.min(hi === undefined ? 100 : hi, v)); }
+  function round(v, d) { var p = Math.pow(10, d || 0); return Math.round(v * p) / p; }
+
+  function fetchJson(url, timeoutMs) {
+    var ctrl = ("AbortController" in window) ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, timeoutMs || 12000) : null;
+    return fetch(url, { signal: ctrl ? ctrl.signal : undefined, credentials: "omit" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .finally(function () { if (timer) clearTimeout(timer); });
+  }
+  /* push2 有多个独立域名（主域名 + 编号域名 + 延迟域名），任一被限流/502 时轮换下一个；
+     编号域名与主域名数据一致、延迟域名数据约延迟 15 分钟，仅作最后兜底 */
+  var PUSH2_HOSTS = ["push2.eastmoney.com", "82.push2.eastmoney.com",
+                     "1.push2.eastmoney.com", "push2delay.eastmoney.com"];
+  function fetchRetry(url, tries) {
+    var m = url.match(/:\/\/([^/]*push2[a-z0-9.]*\.eastmoney\.com)/);
+    if (m && m[1] !== "push2his.eastmoney.com") {
+      var hosts = PUSH2_HOSTS.filter(function (h) { return h !== m[1]; });
+      hosts.unshift(m[1]);
+      var chain = Promise.reject(new Error("start"));
+      hosts.forEach(function (h) {
+        chain = chain.catch(function () { return fetchJson(url.replace(m[1], h)); });
+      });
+      return chain;
+    }
+    return fetchJson(url).catch(function (e) {
+      if (tries > 1) return new Promise(function (res) { setTimeout(res, 1200); })
+        .then(function () { return fetchRetry(url, tries - 1); });
+      throw e;
+    });
+  }
+  /* 日粒度数据（K线/资金流历史/两融/龙虎榜）10 分钟内复用缓存：
+     60 秒刷新时只重新请求 push2 实时行情（约 4 个请求），避免高频全量拉取触发源站限流 */
+  var CACHE = {};
+  function cached(key, ttlMs, producer, isGood) {
+    var c = CACHE[key];
+    if (c && (Date.now() - c.t) < ttlMs) return Promise.resolve(c.v);
+    return producer().then(function (v) {
+      if (!isGood || isGood(v)) CACHE[key] = { t: Date.now(), v: v };
+      return v;
+    });
+  }
+  function safe(p, fallback) { return p.then(function (v) { return v; }, function () { return fallback; }); }
+
+  /* ---------------- 基础数据 ---------------- */
+  function fflowDaily(secid, lmt) {
+    return cached("ff|" + secid, 600000, function () {
+      var url = "https://push2his.eastmoney.com/api/qt/stock/fflow/kline/get?lmt=0&klt=101&secid=" + secid
+        + "&fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61,f62,f63&ut=" + UT_HIS;
+      return safe(fetchRetry(url, 2), null).then(function (j) {
+        if (!j || !j.data || !j.data.klines) return [];
+        return j.data.klines.slice(-lmt).map(function (row) {
+          var p = row.split(",");
+          return { date: p[0], main: parseFloat(p[1]), sup: parseFloat(p[5]) };
+        });
+      });
+    }, function (v) { return v.length > 0; });
+  }
+  function priceDaily(secid, lmt) {
+    return cached("pk|" + secid + "|" + lmt, 600000, function () {
+      var url = "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=" + secid + "&ut=" + UT_KLINE
+        + "&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57&klt=101&fqt=0&end=20500101&lmt=" + lmt;
+      return safe(fetchRetry(url, 2), null).then(function (j) {
+        if (!j || !j.data || !j.data.klines) return [];
+        return j.data.klines.map(function (row) {
+          var p = row.split(",");
+          return { date: p[0], close: parseFloat(p[2]), amount: parseFloat(p[6]) };
+        });
+      });
+    }, function (v) { return v.length > 0; });
+  }
+  function trendsAmounts(secid) {
+    return cached("tr|" + secid, 300000, function () {
+      var url = "https://push2his.eastmoney.com/api/qt/stock/trends2/get?secid=" + secid + "&ut=" + UT_KLINE
+        + "&fields1=f1,f2,f3,f4,f5,f6,f7,f8,f9,f10,f11,f12,f13&fields2=f51,f52,f53,f54,f55,f56,f57,f58&iscr=0&ndays=2";
+      return safe(fetchRetry(url, 2), null).then(function (j) {
+        var out = {};
+        if (!j || !j.data || !j.data.trends) return out;
+        j.data.trends.forEach(function (row) {
+          var p = row.split(",");
+          var d = p[0].slice(0, 10), t = p[0].slice(11, 16);
+          (out[d] = out[d] || []).push({ t: t, amt: parseFloat(p[6]) });
+        });
+        return out;
+      });
+    }, function (v) { return Object.keys(v).length > 0; });
+  }
+  function fetchTurnover() {
+    return Promise.all([
+      priceDaily("1.000001", 46), priceDaily("0.399106", 46),
+      safe(fetchRetry("https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&fields=f6,f12&secids=1.000001,0.399106", 2), null),
+      trendsAmounts("1.000001"), trendsAmounts("0.399106")
+    ]).then(function (rs) {
+      var sh = rs[0], sz = rs[1], live = rs[2], shT = rs[3], szT = rs[4];
+      var szMap = {};
+      sz.forEach(function (x) { szMap[x.date] = x.amount; });
+      var hist = [];
+      sh.forEach(function (x) { if (szMap[x.date] !== undefined) hist.push({ date: x.date, amount: x.amount + szMap[x.date] }); });
+      var todayStr = new Date().toLocaleDateString("sv-SE");
+      if (live && live.data && live.data.diff) {
+        var todayAmt = live.data.diff.reduce(function (s, x) { return s + (x.f6 || 0); }, 0);
+        if (hist.length && hist[hist.length - 1].date === todayStr) hist[hist.length - 1].amount = todayAmt;
+        else hist.push({ date: todayStr, amount: todayAmt });
+      }
+      var prevSameTime = null;
+      var dates = Object.keys(shT).sort();
+      if (dates.length >= 2 && dates[dates.length - 1] === todayStr && shT[todayStr].length) {
+        var lastTime = shT[todayStr][shT[todayStr].length - 1].t;
+        var prevDate = dates[dates.length - 2];
+        prevSameTime = 0;
+        [shT, szT].forEach(function (src) {
+          (src[prevDate] || []).forEach(function (m) { if (m.t <= lastTime) prevSameTime += m.amt; });
+        });
+      }
+      return { hist: hist, prevSameTime: prevSameTime };
+    });
+  }
+  function fetchBoards() {
+    var fields = "f12,f14,f3,f10,f62,f66,f164,f165,f174,f175,f184,f267,f268";
+    function page(pn) {
+      return fetchRetry("https://push2.eastmoney.com/api/qt/clist/get?pn=" + pn + "&pz=300&po=1&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2&fields=" + fields, 2)
+        .then(function (j) { return (j.data && j.data.diff) || []; });
+    }
+    return page(1).then(function (p1) {
+      if (p1.length < 300) return p1;
+      return page(2).then(function (p2) { return p1.concat(p2); });
+    }).then(function (diff) {
+      var seen = {}, boards = [];
+      diff.forEach(function (b) {
+        var key = b.f62 + "|" + b.f3;
+        if (seen[key] !== undefined) {
+          if (b.f14.length < boards[seen[key]].f14.length) boards[seen[key]] = b;
+          return;
+        }
+        seen[key] = boards.length;
+        boards.push(b);
+      });
+      return boards;
+    });
+  }
+  function fetchEtfs() {
+    var url = "https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&invt=2"
+      + "&fields=f2,f3,f6,f10,f12,f13,f14,f20,f62,f164,f165,f174,f175,f184,f267,f268,f441"
+      + "&secids=" + ETF_WATCH.join(",");
+    return fetchRetry(url, 2).then(function (j) { return j.data.diff; });
+  }
+  function fetchMargin() {
+    return cached("margin", 600000, function () {
+      var url = "https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_RZRQ_LSHJ"
+        + "&columns=DIM_DATE,RZYE,RZJME,RZJME3D,RZJME5D&pageNumber=1&pageSize=25&sortTypes=-1&sortColumns=DIM_DATE";
+      return fetchRetry(url, 2).then(function (j) { return j.result.data; });
+    }, function (v) { return v && v.length > 0; });
+  }
+  function fetchLhb() {
+    return cached("lhb", 600000, function () {
+      var base = "https://datacenter-web.eastmoney.com/api/data/v1/get";
+      return fetchRetry(base + "?reportName=RPT_DAILYBILLBOARD_DETAILSNEW&columns=TRADE_DATE&pageNumber=1&pageSize=1&sortTypes=-1&sortColumns=TRADE_DATE", 2)
+      .then(function (j) {
+        var date = j.result.data[0].TRADE_DATE.slice(0, 10);
+        var filter = "(TRADE_DATE%3D%27" + date + "%27)";
+        function one(rpt) {
+          return safe(fetchRetry(base + "?reportName=" + rpt + "&columns=SECUCODE,OPERATEDEPT_NAME,BUY,SELL,TRADE_ID&pageNumber=1&pageSize=500&filter=" + filter, 2), null)
+            .then(function (jj) { return (jj && jj.result && jj.result.data) || []; });
+        }
+        return Promise.all([one("RPT_BILLBOARD_DAILYDETAILSBUY"), one("RPT_BILLBOARD_DAILYDETAILSSELL")])
+          .then(function (rs) {
+            var seen = {}, rows = [];
+            rs[0].concat(rs[1]).forEach(function (row) {
+              var k = row.SECUCODE + "|" + row.OPERATEDEPT_NAME + "|" + row.TRADE_ID;
+              if (seen[k]) return;
+              seen[k] = 1;
+              rows.push(row);
+            });
+            var buckets = {
+              "机构专用席位": [0, 0], "一线游资·营业部合计": [0, 0],
+              "拉萨天团（散户）": [0, 0], "沪深股通专用": [0, 0]
+            };
+            rows.forEach(function (row) {
+              var name = row.OPERATEDEPT_NAME || "";
+              var b = name === "机构专用" ? buckets["机构专用席位"]
+                : name.indexOf("股通专用") >= 0 ? buckets["沪深股通专用"]
+                : name.indexOf("拉萨") >= 0 ? buckets["拉萨天团（散户）"]
+                : buckets["一线游资·营业部合计"];
+              b[0] += (row.BUY || 0) / YI;
+              b[1] += (row.SELL || 0) / YI;
+            });
+            var list = Object.keys(buckets).map(function (k) {
+              return { name: k, buy: round(buckets[k][0], 1), sell: round(buckets[k][1], 1) };
+            });
+            return { date: date, list: list };
+          });
+      });
+    }, function (v) { return v && v.list && v.list.length > 0; });
+  }
+
+  /* ---------------- 组装 DATA（公式与 Python 快照版一致） ---------------- */
+  function buildData() {
+    return Promise.all([
+      fetchTurnover(), fetchBoards(), fetchEtfs(), fetchMargin(),
+      safe(fetchLhb(), null), fflowDaily("1.000001", 10)
+    ]).then(function (rs) {
+      var turnover = rs[0], boards = rs[1], etfs = rs[2], marginRows = rs[3], lhb = rs[4], shFflow = rs[5];
+      if (!boards.length || !etfs.length || !marginRows.length || turnover.hist.length < 25) {
+        throw new Error("核心接口数据不完整");
+      }
+      var amounts = turnover.hist.map(function (x) { return x.amount; });
+      var amtByDate = {};
+      turnover.hist.forEach(function (x) { amtByDate[x.date] = x.amount; });
+
+      var selections = {}, union = [], seenU = {};
+      Object.keys(PERIODS).forEach(function (pk) {
+        var f = NET_FIELD[pk];
+        var ranked = boards.slice().sort(function (a, b) { return (b[f] || 0) - (a[f] || 0); });
+        var sel = ranked.slice(0, 5).concat(ranked.slice(-3));
+        selections[pk] = sel;
+        sel.forEach(function (b) { if (!seenU[b.f12]) { seenU[b.f12] = 1; union.push(b.f12); } });
+      });
+      var jobs = [];
+      var boardFf = {}, boardPk = {}, etfFf = {};
+      union.forEach(function (code) {
+        jobs.push(fflowDaily("90." + code, 21).then(function (v) { boardFf[code] = v; }));
+        jobs.push(priceDaily("90." + code, 22).then(function (v) { boardPk[code] = v; }));
+      });
+      ETF_WATCH.forEach(function (s) {
+        jobs.push(fflowDaily(s, 21).then(function (v) { etfFf[s] = v; }));
+      });
+      return Promise.all(jobs).then(function () {
+        var lhbDate = lhb ? lhb.date : "", lhbList = lhb ? lhb.list : [];
+        var net = {};
+        lhbList.forEach(function (x) { net[x.name] = x.buy - x.sell; });
+        var inst = net["机构专用席位"] || 0, hot = net["一线游资·营业部合计"] || 0, retail = net["拉萨天团（散户）"] || 0;
+        var structScore = clamp(50 + (inst + hot - retail) / 4);
+        var marginLatest = marginRows[0], marginDate = marginLatest.DIM_DATE.slice(0, 10);
+        var data = {};
+
+        Object.keys(PERIODS).forEach(function (pk) {
+          var n = PERIODS[pk], nf = NET_FIELD[pk], rf = RATIO_FIELD[pk];
+          /* 成交额 */
+          var tV, tChg, tHint;
+          if (pk === "today") {
+            tV = amounts[amounts.length - 1];
+            if (turnover.prevSameTime) { tChg = (tV / turnover.prevSameTime - 1) * 100; tHint = "较昨日同时段累计"; }
+            else { tChg = (tV / amounts[amounts.length - 2] - 1) * 100; tHint = "较前一交易日全天"; }
+          } else {
+            var cur = amounts.slice(-n), prev = amounts.slice(-2 * n, -n);
+            tV = cur.reduce(function (s, x) { return s + x; }, 0) / n;
+            tChg = (tV / (prev.reduce(function (s, x) { return s + x; }, 0) / prev.length) - 1) * 100;
+            tHint = "日均，较前 " + n + " 日均值";
+          }
+          /* ETF */
+          var etfRows = [], etfNetSum = 0;
+          etfs.forEach(function (e) {
+            var secid = e.f13 + "." + e.f12, netV, ratio;
+            if (pk === "d20") {
+              var ff = etfFf[secid] || [];
+              netV = ff.slice(-20).reduce(function (s, x) { return s + x.main; }, 0) / YI;
+              ratio = null;
+            } else { netV = (e[nf] || 0) / YI; ratio = e[rf]; }
+            etfNetSum += netV;
+            etfRows.push({
+              name: e.f14, code: e.f12, net: round(netV, 1),
+              share: ratio === null || ratio === undefined ? 0 : round(ratio, 2),
+              premium: e.f441 ? round((e.f2 / e.f441 - 1) * 100, 2) : 0,
+              aum: round((e.f20 || 0) / YI)
+            });
+          });
+          var etfTurn = etfs.reduce(function (s, e) { return s + (e.f6 || 0); }, 0) / YI;
+          var etfRatio = etfTurn ? etfNetSum / etfTurn * 100 : 0;
+          /* 融资（T+1） */
+          var mNet;
+          if (pk === "today") mNet = marginLatest.RZJME / YI;
+          else if (pk === "d3") mNet = (marginLatest.RZJME3D || 0) / YI;
+          else if (pk === "d5") mNet = (marginLatest.RZJME5D || 0) / YI;
+          else mNet = marginRows.slice(0, 20).reduce(function (s, r) { return s + (r.RZJME || 0); }, 0) / YI;
+          var mBalChg = (marginRows[0].RZYE - marginRows[Math.min(n, marginRows.length - 1)].RZYE) / YI;
+          /* 板块 */
+          var secRows = selections[pk].map(function (b) {
+            var ff = boardFf[b.f12] || [], pkRows = boardPk[b.f12] || [], big, sup, chg;
+            if (ff.length) {
+              big = ff.slice(-n).reduce(function (s, x) { return s + x.main; }, 0) / YI;
+              sup = ff.slice(-n).reduce(function (s, x) { return s + x.sup; }, 0) / YI;
+            } else { big = (b[nf] || 0) / YI; sup = (b.f66 || 0) / YI; }
+            if (pk === "today") chg = b.f3 || 0;
+            else if (pkRows.length > n) chg = (pkRows[pkRows.length - 1].close / pkRows[pkRows.length - 1 - n].close - 1) * 100;
+            else chg = b.f3 || 0;
+            return { name: b.f14, chg: round(chg, 2), big: round(big, 1), margin: round(sup, 1), vol: round(b.f10 || 0, 2) };
+          });
+          var breadth = boards.filter(function (b) { return (b[nf] || 0) > 0; }).length / boards.length * 100;
+          /* 四维评分 */
+          var dEtf = clamp(50 + etfRatio * 3);
+          var dMargin = clamp(50 + (mNet / n) / 6);
+          var dRot = clamp(breadth);
+          var score = Math.round(0.30 * dEtf + 0.20 * dMargin + 0.25 * dRot + 0.25 * structScore);
+          var level = score >= 75 ? "强势进攻" : score >= 65 ? "偏多进攻" : score >= 55 ? "启动初期"
+            : score >= 45 ? "多空均衡" : score >= 35 ? "偏空防守" : "弱势避险";
+          var scoreSpark = shFflow.slice(-8).map(function (x) {
+            return Math.round(clamp(50 + x.main / (amtByDate[x.date] || 1) * 600));
+          });
+          if (pk !== "today" && scoreSpark.length) scoreSpark[scoreSpark.length - 1] = score;
+          var etfSpark = [];
+          for (var i = 0; i < 8; i++) {
+            var back = 7 - i, sum = 0;
+            ETF_WATCH.forEach(function (s) {
+              var ff = etfFf[s] || [];
+              if (ff.length > back) sum += ff[ff.length - 1 - back].main;
+            });
+            etfSpark.push(round(sum / YI, 1));
+          }
+          var scope = { today: "单日", d3: "3日累计", d5: "5日累计", d20: "20日累计" }[pk];
+          data[pk] = {
+            label: { today: "今日实时", d3: "近3日", d5: "近5日", d20: "近20日" }[pk],
+            scope: scope,
+            stamp: scope + "口径 · 板块/ETF 为主力净额 · 融资截至 " + marginDate + " · 龙虎榜 " + lhbDate,
+            kpi: {
+              turnover: { v: round(tV / 1e12, 2), unit: "万亿", chg: round(tChg, 1), chgUnit: "%", hint: tHint },
+              etf: { v: round(etfNetSum, 1), chg: round(etfRatio, 1), chgUnit: "%", hint: "主力净额占成交额比" },
+              margin: { v: round(mNet, 1), chg: round(mBalChg, 1), hint: "融资余额变动 · 截至 " + marginDate },
+              score: { v: score, level: level, tone: score >= 55 ? "up" : score >= 45 ? "neu" : "down", hint: "四维加权" }
+            },
+            spark: {
+              turnover: amounts.slice(-8).map(function (a) { return round(a / 1e12, 2); }),
+              etf: etfSpark,
+              margin: marginRows.slice(0, 8).reverse().map(function (r) { return round((r.RZJME || 0) / YI, 1); }),
+              score: scoreSpark
+            },
+            dims: [
+              { name: "ETF 资金（慢钱）", score: Math.round(dEtf) },
+              { name: "杠杆情绪（快钱）", score: Math.round(dMargin) },
+              { name: "板块轮动强度", score: Math.round(dRot) },
+              { name: "博弈结构质量", score: Math.round(structScore) }
+            ],
+            etf: etfRows,
+            sectors: secRows,
+            lhb: lhbList
+          };
+        });
+        return data;
+      });
+    });
+  }
+
+  /* ---------------- 状态与调度 ---------------- */
+  function setStatus(mode, text) {
+    var el = document.getElementById("dataStatus");
+    if (!el) return;
+    el.textContent = text;
+    el.className = mode === "live" ? "badge-live" : mode === "snap" ? "badge-live" : "badge-mock";
+    if (mode === "live") el.innerHTML = '<span class="dot"></span>' + text;
+  }
+  function setStamp(text) {
+    var el = document.getElementById("renderTime");
+    if (el) el.textContent = text;
+  }
+  function nowStr() {
+    var d = new Date();
+    function p(n) { return n < 10 ? "0" + n : "" + n; }
+    return d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+  }
+  function isTradingTime() {
+    var d = new Date(), day = d.getDay();
+    if (day === 0 || day === 6) return false;
+    var mins = d.getHours() * 60 + d.getMinutes();
+    return (mins >= 555 && mins <= 692) || (mins >= 777 && mins <= 905); /* 9:15-11:32 / 12:57-15:05 */
+  }
+  function applyLive(map) {
+    window.SMF.update(map);
+    lastOkAt = new Date();
+    setStatus("live", "实时数据 · 东方财富");
+    setStamp(nowStr() + "（直连刷新）");
+  }
+  function loadSnapshot() {
+    return fetchJson("data.json?_=" + Date.now(), 8000).then(function (j) {
+      if (!j || !j.data) throw new Error("快照格式不对");
+      window.SMF.update(j.data);
+      lastOkAt = new Date();
+      setStatus("snap", "快照数据 · " + (j.updated_at || ""));
+      setStamp((j.updated_at || "") + "（快照兜底）");
+    });
+  }
+  var loading = false;
+  function load(isFirst) {
+    if (loading || document.hidden) { schedule(); return; }
+    loading = true;
+    buildData().then(applyLive).catch(function (e) {
+      if (window.console) console.warn("[SMF] 直连失败，尝试快照", e);
+      if (isFirst || !lastOkAt) {
+        return loadSnapshot().catch(function () {
+          /* 不使用任何模拟数据：保持空白骨架，明确标注失败并在 30 秒后自动重试 */
+          setStatus("mock", "真实数据加载失败 · 30 秒后自动重试");
+          setStamp("加载失败，正在重试…");
+          if (timer) clearTimeout(timer);
+          timer = setTimeout(function () { load(true); }, 30000);
+          throw new Error("handled-retry");
+        });
+      }
+      setStatus("live", "刷新失败 · 显示 " + nowStr().slice(11) + " 前数据");
+    }).catch(function () {}).finally(function () { loading = false; schedule(); });
+  }
+  var timer = null;
+  function schedule() {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(function () { load(false); }, isTradingTime() ? 60000 : 300000);
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && lastOkAt && (Date.now() - lastOkAt.getTime() > 90000)) load(false);
+  });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { load(true); });
+  } else { load(true); }
+})();
+
 </script>
 </body>
 </html>
