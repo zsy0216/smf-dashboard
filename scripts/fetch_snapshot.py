@@ -43,8 +43,10 @@ NET_FIELD = {"today": "f62", "d3": "f267", "d5": "f164", "d20": "f174"}  # d20 ä
 RATIO_FIELD = {"today": "f184", "d3": "f268", "d5": "f165", "d20": "f175"}
 
 
-PUSH2_HOSTS = ("push2.eastmoney.com", "82.push2.eastmoney.com",
-               "1.push2.eastmoney.com", "48.push2.eastmoney.com",
+PUSH2_HOSTS = ("push2.eastmoney.com", "push2his.eastmoney.com",
+               "82.push2.eastmoney.com", "1.push2.eastmoney.com",
+               "48.push2.eastmoney.com", "7.push2.eastmoney.com",
+               "45.push2.eastmoney.com", "63.push2.eastmoney.com",
                "push2delay.eastmoney.com")
 
 

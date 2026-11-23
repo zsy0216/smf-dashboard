@@ -1150,7 +1150,6 @@
 })();
 </script>
 <script>
-
 /* =========================================================================
  *  SMF Dashboard 真实数据加载器（v2.0）
  *  策略：浏览器直连东方财富公开接口（已实测开放 CORS）实时构建 DATA，
@@ -1189,8 +1188,11 @@
   }
   /* push2 有多个独立域名（主域名 + 编号域名 + 延迟域名），任一被限流/502 时轮换下一个；
      编号域名与主域名数据一致、延迟域名数据约延迟 15 分钟，仅作最后兜底 */
-  var PUSH2_HOSTS = ["push2.eastmoney.com", "82.push2.eastmoney.com",
-                     "1.push2.eastmoney.com", "push2delay.eastmoney.com"];
+  var PUSH2_HOSTS = ["push2.eastmoney.com", "push2his.eastmoney.com",
+                     "82.push2.eastmoney.com", "1.push2.eastmoney.com",
+                     "48.push2.eastmoney.com", "7.push2.eastmoney.com",
+                     "45.push2.eastmoney.com", "63.push2.eastmoney.com",
+                     "push2delay.eastmoney.com"];
   function fetchRetry(url, tries) {
     var m = url.match(/:\/\/([^/]*push2[a-z0-9.]*\.eastmoney\.com)/);
     if (m && m[1] !== "push2his.eastmoney.com") {
@@ -1379,6 +1381,42 @@
     }, function (v) { return v && v.list && v.list.length > 0; });
   }
 
+  function fetchMood(tradeDate) {
+    var d = tradeDate.replace(/-/g, "");
+    var ut = "7eea3edcaed734bea9cbfc24409ed989", base = "https://push2ex.eastmoney.com";
+    function pool(path, size, sort) {
+      return safe(fetchRetry(base + path + "?ut=" + ut + "&dpt=wz.ztzt&Pageindex=0&pagesize=" + size + "&sort=" + sort + "&date=" + d, 2), null);
+    }
+    return Promise.all([
+      pool("/getTopicZTPool", 300, "fbt:asc"),
+      pool("/getTopicDTPool", 100, "fund:asc"),
+      pool("/getTopicZBPool", 100, "fbt:asc")
+    ]).then(function (rs) {
+      if (!rs[0] || !rs[0].data) return null;
+      var zpool = rs[0].data.pool || [];
+      var ztN = rs[0].data.tc || zpool.length;
+      var dtN = (rs[1] && rs[1].data && rs[1].data.tc) || 0;
+      var zbN = (rs[2] && rs[2].data && rs[2].data.tc) || 0;
+      if (!ztN && !dtN && !zbN) return null;
+      var maxLbc = 0, lb2 = 0, lb3 = 0, fund = 0;
+      zpool.forEach(function (x) {
+        var l = x.lbc || 1;
+        if (l > maxLbc) maxLbc = l;
+        if (l >= 2) lb2++;
+        if (l >= 3) lb3++;
+        fund += x.fund || 0;
+      });
+      var zbRate = (ztN + zbN) ? zbN / (ztN + zbN) * 100 : 0;
+      var temp = clamp(30 + ztN * 0.5 - dtN * 1.5 - zbRate * 0.30 + maxLbc * 3);
+      return {
+        date: tradeDate, zt: ztN, dt: dtN, zb: zbN, zbRate: round(zbRate, 1),
+        maxLbc: maxLbc, lb2: lb2, lb3: lb3, fundYi: round(fund / YI, 1),
+        temp: Math.round(temp),
+        level: temp >= 75 ? "火热" : temp >= 60 ? "偏暖" : temp >= 45 ? "中性" : temp >= 30 ? "偏冷" : "冰点"
+      };
+    });
+  }
+
   /* ---------------- 组装 DATA（公式与 Python 快照版一致） ---------------- */
   function buildData() {
     return Promise.all([
@@ -1386,6 +1424,9 @@
       safe(fetchLhb(), null), fflowDaily("1.000001", 10)
     ]).then(function (rs) {
       var turnover = rs[0], boards = rs[1], etfs = rs[2], marginRows = rs[3], lhb = rs[4], shFflow = rs[5];
+      var moodP = turnover.hist.length
+        ? safe(fetchMood(turnover.hist[turnover.hist.length - 1].date), null)
+        : Promise.resolve(null);
       if (!boards.length || !etfs.length || !marginRows.length || turnover.hist.length < 25) {
         throw new Error("核心接口数据不完整");
       }
@@ -1410,7 +1451,8 @@
       ETF_WATCH.forEach(function (s) {
         jobs.push(fflowDaily(s, 21).then(function (v) { etfFf[s] = v; }));
       });
-      return Promise.all(jobs).then(function () {
+      return Promise.all([Promise.all(jobs), moodP]).then(function (r2) {
+        var mood = r2[1];
         var lhbDate = lhb ? lhb.date : "", lhbList = lhb ? lhb.list : [];
         var net = {};
         lhbList.forEach(function (x) { net[x.name] = x.buy - x.sell; });
@@ -1469,7 +1511,7 @@
             if (pk === "today") chg = b.f3 || 0;
             else if (pkRows.length > n) chg = (pkRows[pkRows.length - 1].close / pkRows[pkRows.length - 1 - n].close - 1) * 100;
             else chg = b.f3 || 0;
-            return { name: b.f14, chg: round(chg, 2), big: round(big, 1), margin: round(sup, 1), vol: round(b.f10 || 0, 2) };
+            return { name: b.f14, code: b.f12, chg: round(chg, 2), big: round(big, 1), margin: round(sup, 1), vol: round(b.f10 || 0, 2) };
           });
           var breadth = boards.filter(function (b) { return (b[nf] || 0) > 0; }).length / boards.length * 100;
           /* 四维评分 */
@@ -1517,13 +1559,82 @@
             ],
             etf: etfRows,
             sectors: secRows,
-            lhb: lhbList
+            lhb: lhbList,
+            mood: mood
           };
         });
         return data;
       });
     });
   }
+
+  /* ---------------- 板块钻取：点击板块行 -> 成分股主力净流入 Top10 ---------------- */
+  function escHtml(s) {
+    return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  function drillModal() {
+    var m = document.getElementById("drillModal");
+    if (m) return m;
+    m = document.createElement("div");
+    m.id = "drillModal";
+    m.style.cssText = "display:none;position:fixed;inset:0;z-index:60;background:rgba(3,6,10,.72);align-items:flex-start;justify-content:center;padding:6vh 14px 14px;";
+    m.innerHTML = '<div style="background:#111826;border:1px solid #1e2a3c;border-radius:14px;max-width:760px;width:100%;max-height:84vh;overflow:auto;padding:16px 18px;box-shadow:0 24px 60px -20px rgba(0,0,0,.9);">'
+      + '<div style="display:flex;align-items:center;gap:10px;">'
+      + '<div id="drillTitle" style="font-size:15px;font-weight:800;color:#e6edf7;">板块成分股</div>'
+      + '<div id="drillSub" style="font-size:11px;color:#64748b;"></div>'
+      + '<button id="drillClose" style="margin-left:auto;background:#0d1420;color:#e6edf7;border:1px solid #1e2a3c;border-radius:8px;padding:4px 12px;cursor:pointer;">关闭 ✕</button></div>'
+      + '<div id="drillBody" style="margin-top:12px;font-size:12.5px;color:#b9c7db;">加载中…</div></div>';
+    document.body.appendChild(m);
+    m.addEventListener("click", function (e) { if (e.target === m) m.style.display = "none"; });
+    m.querySelector("#drillClose").addEventListener("click", function () { m.style.display = "none"; });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape") m.style.display = "none"; });
+    return m;
+  }
+  function openDrill(code, name) {
+    var m = drillModal();
+    m.style.display = "flex";
+    document.getElementById("drillTitle").textContent = name + " · 成分股资金流";
+    document.getElementById("drillSub").textContent = code + " · 按主力净流入排序 Top10（实时）";
+    var body = document.getElementById("drillBody");
+    body.textContent = "加载中…";
+    var url = "https://push2.eastmoney.com/api/qt/clist/get?pn=1&pz=10&po=1&np=1&fltt=2&invt=2&fid=f62"
+      + "&fs=b:" + code + "&fields=f12,f14,f2,f3,f6,f62,f184";
+    fetchRetry(url, 2).then(function (j) {
+      var diff = (j.data && j.data.diff) || [];
+      if (!diff.length) { body.textContent = "暂无成分股数据。"; return; }
+      var html = '<table style="width:100%;border-collapse:collapse;font-size:12.5px;">'
+        + '<thead><tr style="color:#8b9bb4;text-align:right;">'
+        + '<th style="text-align:left;padding:6px 8px;">股票</th><th style="padding:6px 8px;">现价</th>'
+        + '<th style="padding:6px 8px;">涨跌幅</th><th style="padding:6px 8px;">成交额(亿)</th>'
+        + '<th style="padding:6px 8px;">主力净流入(亿)</th><th style="padding:6px 8px;">净占比</th></tr></thead><tbody>';
+      diff.forEach(function (s) {
+        var net = (s.f62 || 0) / YI;
+        var col = net >= 0 ? "#ef4444" : "#10b981";
+        var cc = s.f3 >= 0 ? "#ef4444" : "#10b981";
+        html += '<tr style="border-top:1px solid #1e2a3c;text-align:right;">'
+          + '<td style="text-align:left;padding:6px 8px;"><b style="color:#e6edf7;">' + escHtml(s.f14) + '</b> <span style="color:#64748b;">' + escHtml(s.f12) + "</span></td>"
+          + '<td style="padding:6px 8px;">' + (s.f2 == null ? "--" : s.f2) + "</td>"
+          + '<td style="padding:6px 8px;color:' + cc + ';">' + (s.f3 > 0 ? "+" : "") + s.f3 + "%</td>"
+          + '<td style="padding:6px 8px;">' + ((s.f6 || 0) / YI).toFixed(1) + "</td>"
+          + '<td style="padding:6px 8px;font-weight:700;color:' + col + ';">' + (net > 0 ? "+" : "") + net.toFixed(2) + "</td>"
+          + '<td style="padding:6px 8px;color:' + col + ';">' + (s.f184 > 0 ? "+" : "") + s.f184 + "%</td></tr>";
+      });
+      body.innerHTML = html + "</tbody></table>"
+        + '<div style="margin-top:8px;color:#64748b;font-size:11px;">数据：东方财富 push2 实时行情；点击遮罩或按 Esc 关闭。</div>';
+    }).catch(function () {
+      body.textContent = "成分股数据加载失败，请稍后重试。";
+    });
+  }
+  document.addEventListener("click", function (e) {
+    var t = e.target;
+    while (t && t !== document) {
+      if (t.tagName === "TR" && t.getAttribute && t.getAttribute("data-bk")) {
+        openDrill(t.getAttribute("data-bk"), t.getAttribute("data-bkname") || "板块");
+        return;
+      }
+      t = t.parentNode;
+    }
+  });
 
   /* ---------------- 状态与调度 ---------------- */
   function setStatus(mode, text) {
@@ -1594,7 +1705,6 @@
     document.addEventListener("DOMContentLoaded", function () { load(true); });
   } else { load(true); }
 })();
-
 </script>
 </body>
 </html>
