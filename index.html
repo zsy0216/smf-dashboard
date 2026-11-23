@@ -1253,12 +1253,16 @@
   function fetchBoards() {
     var fields = "f12,f14,f3,f10,f62,f66,f164,f165,f174,f175,f184,f267,f268";
     function page(pn) {
-      return fetchRetry("https://push2.eastmoney.com/api/qt/clist/get?pn=" + pn + "&pz=300&po=1&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2&fields=" + fields, 2)
+      return fetchRetry("https://push2.eastmoney.com/api/qt/clist/get?pn=" + pn + "&pz=200&po=1&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2&fields=" + fields, 2)
         .then(function (j) { return (j.data && j.data.diff) || []; });
     }
     return page(1).then(function (p1) {
-      if (p1.length < 300) return p1;
-      return page(2).then(function (p2) { return p1.concat(p2); });
+      if (p1.length < 200) return p1;
+      return page(2).then(function (p2) {
+        var acc = p1.concat(p2);
+        if (p2.length < 200) return acc;
+        return page(3).then(function (p3) { return acc.concat(p3); });
+      });
     }).then(function (diff) {
       var seen = {}, boards = [];
       diff.forEach(function (b) {

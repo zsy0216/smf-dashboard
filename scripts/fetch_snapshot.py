@@ -157,13 +157,14 @@ def fetch_boards():
     """全部行业板块（m:90+t:2），按 (主力净额, 涨跌幅) 去重掉 银行/银行Ⅱ 这类层级重复。"""
     fields = "f12,f14,f3,f10,f62,f66,f164,f165,f174,f175,f184,f267,f268"
     diff = []
-    for pn in (1, 2):  # pz=300 分两页拉全量（总数约 496）
+    for pn in (1, 2, 3):  # pz=200 分三页拉全量（总数约 496），小页更不容易触发源站限流
         url = ("https://push2.eastmoney.com/api/qt/clist/get"
-               f"?pn={pn}&pz=300&po=1&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2&fields={fields}")
+               f"?pn={pn}&pz=200&po=1&np=1&fltt=2&invt=2&fid=f62&fs=m:90+t:2&fields={fields}")
         page = get_json(url)["data"]["diff"]
         diff.extend(page)
-        if len(page) < 300:
+        if len(page) < 200:
             break
+        time.sleep(0.7)
     seen, boards = {}, []
     for b in diff:
         key = (b.get("f62"), b.get("f3"))
