@@ -1,5 +1,5 @@
 {
- "updated_at": "2026-11-24 18:51:14",
+ "updated_at": "2026-11-25 02:56:21",
  "trade_date": "2026-11-24",
  "source": "东方财富公开接口（脚本快照，前端直连失败时兜底）",
  "lhb_date": "2026-11-24",
@@ -266,9 +266,9 @@
     "flat": 124,
     "upRatio": 35.3,
     "yztDate": "2026-11-23",
-    "yztAvg": 4.44,
-    "yztRed": 75.2,
-    "yztN": 125
+    "yztAvg": 4.32,
+    "yztRed": 75.4,
+    "yztN": 122
    },
    "flow": null,
    "flowDaily": [],
@@ -720,9 +720,9 @@
     "flat": 124,
     "upRatio": 35.3,
     "yztDate": "2026-11-23",
-    "yztAvg": 4.44,
-    "yztRed": 75.2,
-    "yztN": 125
+    "yztAvg": 4.32,
+    "yztRed": 75.4,
+    "yztN": 122
    },
    "flow": null,
    "flowDaily": [],
@@ -1174,9 +1174,9 @@
     "flat": 124,
     "upRatio": 35.3,
     "yztDate": "2026-11-23",
-    "yztAvg": 4.44,
-    "yztRed": 75.2,
-    "yztN": 125
+    "yztAvg": 4.32,
+    "yztRed": 75.4,
+    "yztN": 122
    },
    "flow": null,
    "flowDaily": [],
@@ -1628,9 +1628,9 @@
     "flat": 124,
     "upRatio": 35.3,
     "yztDate": "2026-11-23",
-    "yztAvg": 4.44,
-    "yztRed": 75.2,
-    "yztN": 125
+    "yztAvg": 4.32,
+    "yztRed": 75.4,
+    "yztN": 122
    },
    "flow": null,
    "flowDaily": [],
