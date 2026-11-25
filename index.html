@@ -507,7 +507,7 @@
 
       <h4>二、真实数据的接入方式（已实现）</h4>
       <p><b style="color:#dbe6f5">直连优先</b>：页面底部加载器直接请求东方财富 push2 / push2his / datacenter-web 三个域名（均已实测开放 CORS），在浏览器内组装成与内置 <span class="mono kv">DATA</span> 相同的结构后调用 <span class="mono kv">SMF.update()</span> 渲染，图表配置零改动；交易时段每 60 秒、非交易时段每 300 秒自动刷新。</p>
-      <p><b style="color:#dbe6f5">快照先行</b>：页面打开时先读同仓库的 <span class="mono kv">data.json</span> 立即渲染，不再空白等待直连；随后直连东方财富刷新为实时数据，直连失败就停在快照这一版并自动重试。快照由 GitHub Actions 运行 <span class="mono kv">scripts/fetch_snapshot.py</span> 在交易时段每 10 分钟生成，口径与前端直连完全一致。顶栏「刷新最新数据」按钮可随时手动直连刷新一次。</p>
+      <p><b style="color:#dbe6f5">快照先行</b>：页面打开时先展示浏览器本地留存的上次数据（没有留存时读同仓库的 <span class="mono kv">data.json</span> 快照）立即渲染，不再空白等待直连；随后直连东方财富刷新为实时数据，直连失败就停在已有数据上并自动重试，旧快照不会覆盖更新的数据。快照由 GitHub Actions 运行 <span class="mono kv">scripts/fetch_snapshot.py</span> 在交易时段每 10 分钟生成，口径与前端直连完全一致。顶栏「刷新最新数据」按钮可随时手动直连刷新一次。</p>
       <p><b style="color:#dbe6f5">状态可见</b>：顶部徽标实时标注当前数据状态（实时数据 / 快照数据 / 模拟数据），两融与龙虎榜的截至日期写在各周期 stamp 里，不会把 T+1 数据冒充实时。</p>
 
       <h4>三、信号判定逻辑（页面内自动计算，非人工标注）</h4>
@@ -1975,17 +1975,49 @@
     var mins = d.getHours() * 60 + d.getMinutes();
     return (mins >= 555 && mins <= 692) || (mins >= 777 && mins <= 905); /* 9:15-11:32 / 12:57-15:05 */
   }
+  var currentDataAt = 0;
+  var CACHE_KEY = "smf-cache-v1";
+  function saveCache(map) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: currentDataAt, data: map })); } catch (e) {}
+  }
+  function renderCache() {
+    try {
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return false;
+      var c = JSON.parse(raw);
+      if (!c || !c.data || !c.at) return false;
+      if (Date.now() - c.at > 24 * 3600 * 1000) return false;
+      window.SMF.update(c.data);
+      currentDataAt = c.at;
+      lastOkAt = new Date();
+      var d = new Date(c.at);
+      function p(n) { return n < 10 ? "0" + n : "" + n; }
+      var t = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+      setStatus("snap", "本地缓存 · " + t);
+      setStamp(t + "（本地缓存）");
+      return true;
+    } catch (e) { return false; }
+  }
   function applyLive(map) {
     window.SMF.update(map);
     lastOkAt = new Date();
+    currentDataAt = Date.now();
+    saveCache(map);
     setStatus("live", "实时数据 · 东方财富");
     setStamp(nowStr() + "（直连刷新）");
   }
   function loadSnapshot() {
     return fetchJson("data.json?_=" + Date.now(), 8000).then(function (j) {
       if (!j || !j.data) throw new Error("快照格式不对");
+      var snapAt = Date.parse((j.updated_at || "").replace(" ", "T")) || 0;
+      if (currentDataAt && snapAt && snapAt <= currentDataAt) {
+        /* 屏上已有更新的数据（实时/本地缓存），旧快照不倒灌覆盖 */
+        return;
+      }
       window.SMF.update(j.data);
       lastOkAt = new Date();
+      currentDataAt = snapAt || Date.now();
+      saveCache(j.data);
       setStatus("snap", "快照数据 · " + (j.updated_at || ""));
       setStamp((j.updated_at || "") + "（快照兜底）");
     });
@@ -1995,9 +2027,11 @@
     if (loading || document.hidden) { schedule(); return; }
     loading = true;
     /* 首屏先渲染仓库快照（同源、快）：页面不等直连结果，直连成功后再无缝替换为实时数据 */
-    var firstPaint = (isFirst && !lastOkAt)
-      ? loadSnapshot().catch(function () {})
-      : Promise.resolve();
+    var firstPaint = Promise.resolve();
+    if (isFirst && !lastOkAt) {
+      renderCache();
+      firstPaint = loadSnapshot().catch(function () {});
+    }
     firstPaint.then(function () { return buildData(); }).then(applyLive).catch(function (e) {
       if (window.console) console.warn("[SMF] 直连失败，尝试快照", e);
       /* 直连失败时每一轮都重新拉一次快照：仓库里的快照会持续更新，
