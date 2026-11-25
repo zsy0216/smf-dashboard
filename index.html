@@ -256,6 +256,7 @@
       <span class="badge-live"><span class="dot"></span>多维监测中</span>
       <span class="badge-mock" id="dataStatus">正在连接真实数据…</span>
       <span class="stamp">渲染时间 <b id="renderTime">--</b></span>
+      <button id="refreshBtn" type="button" style="padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:#0c1320;color:#dbe6f5;font-size:12px;cursor:pointer;">刷新最新数据</button>
       <div class="periods" role="group" aria-label="时间周期切换">
         <button class="pbtn on" id="pv-today" data-period="today" type="button">今日实时</button>
         <button class="pbtn" id="pv-d3" data-period="d3" type="button">近3日</button>
@@ -459,7 +460,7 @@
     </summary>
     <div class="info-bd">
 
-      <h4>一、接口映射表（已接入真实数据：浏览器直连东方财富公开接口，失败时回退仓库内 data.json 快照）</h4>
+      <h4>一、接口映射表（已接入真实数据：打开先展示仓库内 data.json 快照，再直连东方财富公开接口刷新）</h4>
       <div class="tbl-wrap">
         <table class="tb" style="min-width:720px;">
           <thead>
@@ -502,7 +503,7 @@
 
       <h4>二、真实数据的接入方式（已实现）</h4>
       <p><b style="color:#dbe6f5">直连优先</b>：页面底部加载器直接请求东方财富 push2 / push2his / datacenter-web 三个域名（均已实测开放 CORS），在浏览器内组装成与内置 <span class="mono kv">DATA</span> 相同的结构后调用 <span class="mono kv">SMF.update()</span> 渲染，图表配置零改动；交易时段每 60 秒、非交易时段每 300 秒自动刷新。</p>
-      <p><b style="color:#dbe6f5">快照兜底</b>：直连失败（网络受限、接口临时故障）时自动改读同仓库的 <span class="mono kv">data.json</span>——由 GitHub Actions 运行 <span class="mono kv">scripts/fetch_snapshot.py</span> 在交易时段每 10 分钟生成，口径与前端直连完全一致。</p>
+      <p><b style="color:#dbe6f5">快照先行</b>：页面打开时先读同仓库的 <span class="mono kv">data.json</span> 立即渲染，不再空白等待直连；随后直连东方财富刷新为实时数据，直连失败就停在快照这一版并自动重试。快照由 GitHub Actions 运行 <span class="mono kv">scripts/fetch_snapshot.py</span> 在交易时段每 10 分钟生成，口径与前端直连完全一致。顶栏「刷新最新数据」按钮可随时手动直连刷新一次。</p>
       <p><b style="color:#dbe6f5">状态可见</b>：顶部徽标实时标注当前数据状态（实时数据 / 快照数据 / 模拟数据），两融与龙虎榜的截至日期写在各周期 stamp 里，不会把 T+1 数据冒充实时。</p>
 
       <h4>三、信号判定逻辑（页面内自动计算，非人工标注）</h4>
@@ -1989,7 +1990,11 @@
   function load(isFirst) {
     if (loading || document.hidden) { schedule(); return; }
     loading = true;
-    buildData().then(applyLive).catch(function (e) {
+    /* 首屏先渲染仓库快照（同源、快）：页面不等直连结果，直连成功后再无缝替换为实时数据 */
+    var firstPaint = (isFirst && !lastOkAt)
+      ? loadSnapshot().catch(function () {})
+      : Promise.resolve();
+    firstPaint.then(function () { return buildData(); }).then(applyLive).catch(function (e) {
       if (window.console) console.warn("[SMF] 直连失败，尝试快照", e);
       /* 直连失败时每一轮都重新拉一次快照：仓库里的快照会持续更新，
          不能停在第一次兜底的那一版上（否则页面会永远显示旧时间戳） */
@@ -2004,7 +2009,7 @@
         }
         setStatus("live", "刷新失败 · 显示 " + nowStr().slice(11) + " 前数据");
       });
-    }).catch(function () {}).finally(function () { loading = false; schedule(); });
+    }).catch(function () {}).finally(function () { loading = false; setBtnBusy(false); schedule(); });
   }
   var timer = null;
   function schedule() {
@@ -2013,6 +2018,18 @@
   }
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden && lastOkAt && (Date.now() - lastOkAt.getTime() > 90000)) load(false);
+  });
+  var refreshBtn = document.getElementById("refreshBtn");
+  function setBtnBusy(b) {
+    if (!refreshBtn) return;
+    refreshBtn.disabled = b;
+    refreshBtn.textContent = b ? "正在刷新…" : "刷新最新数据";
+    refreshBtn.style.opacity = b ? "0.6" : "1";
+  }
+  if (refreshBtn) refreshBtn.addEventListener("click", function () {
+    if (loading) return;
+    setBtnBusy(true);
+    load(false);
   });
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { load(true); });
