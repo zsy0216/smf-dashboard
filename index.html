@@ -137,6 +137,10 @@
   .info:hover::after, .info:focus::after{ opacity:1; transform:translateX(-50%) translateY(0); }
   .info.d::after{ bottom:auto; top:calc(100% + 8px); transform:translateX(-50%) translateY(-3px); }
   .info.d:hover::after, .info.d:focus::after{ transform:translateX(-50%) translateY(0); }
+  .info.l::after{ left:-6px; transform:translateY(3px); }
+  .info.l:hover::after, .info.l:focus::after{ transform:translateY(0); }
+  .info.d.l::after{ transform:translateY(-3px); }
+  .info.d.l:hover::after, .info.d.l:focus::after{ transform:translateY(0); }
   @media (max-width:620px){ .info::after{ max-width:200px; } }
   .kpi-val{ display:flex; align-items:baseline; gap:6px; margin-top:8px; }
   .kpi-val .v{ font-size:30px; font-weight:800; letter-spacing:-1.2px; line-height:1.05; }
@@ -272,7 +276,7 @@
   <!-- ======================= KPI ======================= -->
   <section class="grid-kpi fade-in" aria-label="核心指标">
     <div class="panel kpi">
-      <div class="kpi-label">全市场两市成交额<span class="kpi-note" id="kpi-turnover-scope">单日</span><span class="info d" tabindex="0" data-tip="全市场今天成交了多少钱，看量能。和昨日同时段比：放量上涨才健康，缩量上涨要留个心眼。">i</span></div>
+      <div class="kpi-label">全市场两市成交额<span class="kpi-note" id="kpi-turnover-scope">单日</span><span class="info d l" tabindex="0" data-tip="全市场今天成交了多少钱，看量能。和昨日同时段比：放量上涨才健康，缩量上涨要留个心眼。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-turnover">--</span><span class="u" id="kpi-turnover-unit">万亿</span></div>
       <div class="kpi-sub"><span class="num" id="kpi-turnover-chg">--</span><span id="kpi-turnover-hint">较前一交易日</span></div>
       <div class="spark" id="spark-turnover"></div>
@@ -812,8 +816,8 @@
       return;
     }
     var tc = mo.temp >= 60 ? COLORS.up : (mo.temp >= 45 ? COLORS.gold : COLORS.down);
-    function cell(k, v, color, tip) {
-      return '<div class="sum-cell"><div class="k">' + k + (tip ? '<span class="info" tabindex="0" data-tip="' + tip + '">i</span>' : '') + '</div><div class="v num" style="color:' + color + '">' + v + "</div></div>";
+    function cell(k, v, color, tip, cls) {
+      return '<div class="sum-cell"><div class="k">' + k + (tip ? '<span class="' + (cls || "info") + '" tabindex="0" data-tip="' + tip + '">i</span>' : '') + '</div><div class="v num" style="color:' + color + '">' + v + "</div></div>";
     }
     body.innerHTML =
       '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;">'
@@ -823,7 +827,7 @@
       + '<div style="flex:1;min-width:140px;height:8px;border-radius:99px;background:#0d1420;border:1px solid var(--line);overflow:hidden;"><i style="display:block;height:100%;width:' + mo.temp + '%;background:linear-gradient(90deg,#10b981,#e0b64f,#ef4444);"></i></div>'
       + "</div>"
       + '<div class="lhb-sum">'
-      + cell("涨停家数", mo.zt + " 家", COLORS.up, "当天涨停家数。涨停多、跌停少＝情绪热；跌停成片＝恐慌。和跌停家数对照着看。")
+      + cell("涨停家数", mo.zt + " 家", COLORS.up, "当天涨停家数。涨停多、跌停少＝情绪热；跌停成片＝恐慌。和跌停家数对照着看。", "info l")
       + cell("跌停家数", mo.dt + " 家", COLORS.down, "当天跌停家数。明显增多是恐慌信号；和涨停家数对照看情绪冷热。")
       + cell("炸板率", mo.zbRate.toFixed(1) + "%（炸板 " + mo.zb + " 家）", mo.zbRate >= 30 ? COLORS.down : COLORS.gold, "涨停后又被砸开的比例。越高（超过30%）说明追高的人在被埋，资金接力意愿差。")
       + cell("最高连板", mo.maxLbc + " 板", COLORS.gold, "连板梯队的最高高度，是短线赚钱效应的天花板。5板以上有龙头带队，只剩2板就是群龙无首。")
@@ -873,7 +877,7 @@
     }
     if (!sigs.length) { bar.style.display = "none"; return; }
     bar.style.display = "block";
-    bar.innerHTML = '<b style="color:var(--gold);">异动信号</b><span class="info" tabindex="0" data-tip="规则触发的提醒：ETF转向、评分拐点、板块共振、情绪极端等。当闹钟用——响了去对应面板确认，别当买卖指令。">i</span>　' + sigs.map(function (s) {
+    bar.innerHTML = '<b style="color:var(--gold);">异动信号</b><span class="info l" tabindex="0" data-tip="规则触发的提醒：ETF转向、评分拐点、板块共振、情绪极端等。当闹钟用——响了去对应面板确认，别当买卖指令。">i</span>　' + sigs.map(function (s) {
       return '<span style="display:inline-block;margin:2px 6px 2px 0;padding:2px 10px;border:1px solid var(--line);border-radius:99px;background:#0d1420;">' + esc(s) + "</span>";
     }).join("");
   }
@@ -2027,6 +2031,8 @@
     refreshBtn.style.opacity = b ? "0.6" : "1";
   }
   if (refreshBtn) refreshBtn.addEventListener("click", function () {
+    /* 先秒拉一次最新快照（仓库里有更新就立刻换上），再走直连刷新 */
+    loadSnapshot().catch(function () {});
     if (loading) return;
     setBtnBusy(true);
     load(false);
