@@ -131,6 +131,13 @@
   }
   .kpi-label{ font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
   .kpi-note{ font-size:10px; color:var(--dim); border:1px solid var(--line); padding:1px 6px; border-radius:5px; }
+  /* ---------- 指标说明角标 ---------- */
+  .info{ display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; margin-left:5px; border-radius:50%; border:1px solid var(--dim); color:var(--dim); font-size:10px; font-style:normal; font-weight:400; cursor:help; position:relative; vertical-align:1px; flex:none; }
+  .info::after{ content:attr(data-tip); position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%) translateY(3px); width:max-content; max-width:250px; white-space:normal; text-align:left; background:#0d1522; color:#dbe6f5; border:1px solid rgba(139,155,180,.45); border-radius:8px; padding:8px 10px; font-size:11.5px; line-height:1.65; opacity:0; pointer-events:none; transition:opacity .15s ease, transform .15s ease; z-index:80; box-shadow:0 10px 28px rgba(0,0,0,.5); }
+  .info:hover::after, .info:focus::after{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .info.d::after{ bottom:auto; top:calc(100% + 8px); transform:translateX(-50%) translateY(-3px); }
+  .info.d:hover::after, .info.d:focus::after{ transform:translateX(-50%) translateY(0); }
+  @media (max-width:620px){ .info::after{ max-width:200px; } }
   .kpi-val{ display:flex; align-items:baseline; gap:6px; margin-top:8px; }
   .kpi-val .v{ font-size:30px; font-weight:800; letter-spacing:-1.2px; line-height:1.05; }
   .kpi-val .u{ font-size:12.5px; color:var(--muted); font-weight:600; }
@@ -264,25 +271,25 @@
   <!-- ======================= KPI ======================= -->
   <section class="grid-kpi fade-in" aria-label="核心指标">
     <div class="panel kpi">
-      <div class="kpi-label">全市场两市成交额<span class="kpi-note" id="kpi-turnover-scope">单日</span></div>
+      <div class="kpi-label">全市场两市成交额<span class="kpi-note" id="kpi-turnover-scope">单日</span><span class="info d" tabindex="0" data-tip="全市场今天成交了多少钱，看量能。和昨日同时段比：放量上涨才健康，缩量上涨要留个心眼。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-turnover">--</span><span class="u" id="kpi-turnover-unit">万亿</span></div>
       <div class="kpi-sub"><span class="num" id="kpi-turnover-chg">--</span><span id="kpi-turnover-hint">较前一交易日</span></div>
       <div class="spark" id="spark-turnover"></div>
     </div>
     <div class="panel kpi">
-      <div class="kpi-label">头部宽基ETF主力净流入<span class="kpi-note">机构/长线风向标</span></div>
+      <div class="kpi-label">头部宽基ETF主力净流入<span class="kpi-note">机构/长线风向标</span><span class="info d" tabindex="0" data-tip="头部宽基ETF的主力净流入。ETF是机构和长线资金（慢钱）的主要通道，它的方向代表稳健资金的态度。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-etf">--</span><span class="u">亿元</span></div>
       <div class="kpi-sub"><span class="num" id="kpi-etf-chg">--</span><span>主力净额占成交额比</span></div>
       <div class="spark" id="spark-etf"></div>
     </div>
     <div class="panel kpi">
-      <div class="kpi-label">全市场融资净买入<span class="kpi-note">杠杆活跃度</span></div>
+      <div class="kpi-label">全市场融资净买入<span class="kpi-note">杠杆活跃度</span><span class="info d" tabindex="0" data-tip="借钱买股的杠杆资金今天净买入多少。放大＝杠杆资金在进攻；若指数不涨，就是杠杆滞涨、偏风险。数据T+1披露，滞后一天。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-margin">--</span><span class="u">亿元</span></div>
       <div class="kpi-sub"><span class="num" id="kpi-margin-chg">--</span><span>融资余额日变动</span></div>
       <div class="spark" id="spark-margin"></div>
     </div>
     <div class="panel kpi">
-      <div class="kpi-label">主力资金真实度情绪评分<span class="kpi-note">0-100</span></div>
+      <div class="kpi-label">主力资金真实度情绪评分<span class="kpi-note">0-100</span><span class="info d" tabindex="0" data-tip="四维加权总分（0~100）：ETF慢钱30%＋杠杆情绪20%＋板块轮动25%＋博弈结构25%。50上下多空均衡，60+偏多，40以下偏空。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-score">--</span><span class="u">/100</span></div>
       <div class="kpi-sub"><span id="kpi-score-level" style="font-weight:700">--</span><span id="kpi-score-hint">四维加权</span></div>
       <div class="spark" id="spark-score"></div>
@@ -304,7 +311,7 @@
   <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
       <div class="panel-no">01</div>
-      <div style="font-size:13px;font-weight:700;">市场情绪温度 · 涨跌停与连板生态</div>
+      <div style="font-size:13px;font-weight:700;">市场情绪温度 · 涨跌停与连板生态<span class="info" tabindex="0" data-tip="短线氛围的综合温度，合成公式就写在温度条下面。越高越热，但超过80往往是情绪尾声、接力风险大；低于20是冰点区。">i</span></div>
       <div style="font-size:11px;color:var(--dim);">涨停 / 跌停 / 炸板池 · 当日数据（盘中实时，取最近交易日）</div>
       <div class="right" id="moodRight" style="margin-left:auto;font-size:11px;color:var(--dim);">--</div>
     </div>
@@ -315,7 +322,7 @@
   <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
       <div class="panel-no">02</div>
-      <div style="font-size:13px;font-weight:700;">大盘主力资金流 · 两市累计净额曲线</div>
+      <div style="font-size:13px;font-weight:700;">大盘主力资金流 · 两市累计净额曲线<span class="info" tabindex="0" data-tip="主力净额的当日累计曲线：全天往上爬＝主力持续买入；高位突然掉头＝在出货。主力＝超大单（≥100万）＋大单（20~100万）的买卖差额。非交易时段切换为近10日柱状：单日会骗人，连续3~5天同向才算趋势。">i</span></div>
       <div style="font-size:11px;color:var(--dim);">沪+深指数分时资金流合并 · 累计值（亿元）· 当日数据，不随周期切换</div>
       <div class="right" id="flowRight" style="margin-left:auto;font-size:11px;color:var(--dim);">--</div>
     </div>
@@ -328,7 +335,7 @@
     <div class="panel-hd">
       <div class="panel-no">03</div>
       <div>
-        <div class="panel-t1">机构与长线风向标 · 核心宽基 ETF 资金净流入</div>
+        <div class="panel-t1">机构与长线风向标 · 核心宽基 ETF 资金净流入<span class="info" tabindex="0" data-tip="宽基ETF的主力净额是慢钱风向标。另外看份额：份额增＝有人申购进场，份额减＝赎回离场；份额方向和主力净额方向可能不一致。">i</span></div>
         <div class="panel-t2">净流入＝二级市场主力净额（超大单＋大单），盘中实时；金额单位：亿元 / 净占比单位：%</div>
       </div>
       <div class="right" id="etfHdRight">--</div>
@@ -359,7 +366,7 @@
             </table>
           </div>
           <div class="sub-note" style="margin-top:10px;line-height:1.7;">
-            折溢价率 &gt; +0.3% 说明场内价格显著高于净值，多为追高买入；持续净申购且折溢价平稳，才更接近配置型资金。
+            <span class="info" tabindex="0" data-tip="场内价格比净值贵多少。显著为正说明在追高买入；持续净申购且折溢价平稳，才更接近配置型资金。">i</span>折溢价率 &gt; +0.3% 说明场内价格显著高于净值，多为追高买入；持续净申购且折溢价平稳，才更接近配置型资金。
           </div>
         </div>
       </div>
@@ -371,7 +378,7 @@
     <div class="panel-hd">
       <div class="panel-no">04</div>
       <div>
-        <div class="panel-t1">板块资金轮动热力与量价背离监测</div>
+        <div class="panel-t1">板块资金轮动热力与量价背离监测<span class="info" tabindex="0" data-tip="按资金排的板块榜：净额（钱）和涨跌幅（价）一起看——钱进价涨＝真强；价涨钱出＝拉高出货。点表格里的板块行可钻取它的成分股资金。">i</span></div>
         <div class="panel-t2">横轴涨跌幅 · 纵轴大单净流入（亿元）· 气泡大小＝超大单净额绝对值 · 点击表格中的板块行可钻取成分股资金流</div>
       </div>
       <div class="right" id="sectorHdRight">--</div>
@@ -400,7 +407,7 @@
         </table>
       </div>
       <div style="margin-top:16px;">
-        <div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">板块多周期热力 · 大单净额（亿）</div>
+        <div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">板块多周期热力 · 大单净额（亿）<span class="info" tabindex="0" data-tip="同一批板块在今日/3日/5日/20日四个周期的净额。一整行都红＝多周期共振、真趋势；只有今日一格红＝一日游。">i</span></div>
         <div style="font-size:11px;color:var(--dim);margin-bottom:8px;">同一板块在四个周期的持续性：整行红＝资金持续流入的主线；只有「今日」红＝一日游。-- 表示该周期未进前 5/后 3</div>
         <div id="matrixBody" style="font-size:12.5px;color:var(--muted);">正在加载真实数据…</div>
       </div>
@@ -411,7 +418,7 @@
   <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
       <div class="panel-no">05</div>
-      <div style="font-size:13px;font-weight:700;">个股资金榜 · 全市场主力净额 Top10</div>
+      <div style="font-size:13px;font-weight:700;">个股资金榜 · 全市场主力净额 Top10<span class="info" tabindex="0" data-tip="主力净流入/流出最大的个股。流入榜看龙头是谁，流出榜看谁在被抛。大票吸金多是体量原因，不等于要涨停。">i</span></div>
       <div style="font-size:11px;color:var(--dim);">当日数据 · 钱最集中的票与被抛弃的票</div>
     </div>
     <div class="grid-2" style="grid-template-columns:1fr 1fr;">
@@ -425,7 +432,7 @@
     <div class="panel-hd">
       <div class="panel-no">06</div>
       <div>
-        <div class="panel-t1">短线博弈结构 · 龙虎榜机构与游资席位买卖对比</div>
+        <div class="panel-t1">短线博弈结构 · 龙虎榜机构与游资席位买卖对比<span class="info" tabindex="0" data-tip="重点看机构专用席位：机构净买入的票可信度更高；游资席位是短线情绪，来得快去得也快。看结构，不看单个个股。">i</span></div>
         <div class="panel-t2">右侧红柱＝买入额 · 左侧绿柱＝卖出额 · 标签为净额（亿元）</div>
       </div>
       <div class="right" id="lhbHdRight">--</div>
@@ -525,7 +532,7 @@
 
   <footer>
     A股主力资金流向多维监测看板 · v2.0 · 深色金融主题 / 红涨绿跌（#ef4444 涨·流入 / #10b981 跌·流出）<br>
-    数据来自东方财富公开接口，盘中每 60 秒自动刷新；两融 T+1、龙虎榜为最近交易日，均已在页内标注；不构成投资建议。<br>收盘日报存档：<a href="https://github.com/zsy0216/smf-dashboard/tree/main/reports" style="color:#8b9bb4;">reports/</a>（每个交易日 15:05 自动生成）
+    数据来自东方财富公开接口，盘中每 60 秒自动刷新；两融 T+1、龙虎榜为最近交易日，均已在页内标注；不构成投资建议。<br>收盘日报存档：<a href="https://github.com/zsy0216/smf-dashboard/tree/main/reports" style="color:#8b9bb4;">reports/</a>（自动生成已暂停）
   </footer>
 </main>
 
@@ -804,8 +811,8 @@
       return;
     }
     var tc = mo.temp >= 60 ? COLORS.up : (mo.temp >= 45 ? COLORS.gold : COLORS.down);
-    function cell(k, v, color) {
-      return '<div class="sum-cell"><div class="k">' + k + '</div><div class="v num" style="color:' + color + '">' + v + "</div></div>";
+    function cell(k, v, color, tip) {
+      return '<div class="sum-cell"><div class="k">' + k + (tip ? '<span class="info" tabindex="0" data-tip="' + tip + '">i</span>' : '') + '</div><div class="v num" style="color:' + color + '">' + v + "</div></div>";
     }
     body.innerHTML =
       '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;">'
@@ -815,13 +822,13 @@
       + '<div style="flex:1;min-width:140px;height:8px;border-radius:99px;background:#0d1420;border:1px solid var(--line);overflow:hidden;"><i style="display:block;height:100%;width:' + mo.temp + '%;background:linear-gradient(90deg,#10b981,#e0b64f,#ef4444);"></i></div>'
       + "</div>"
       + '<div class="lhb-sum">'
-      + cell("涨停家数", mo.zt + " 家", COLORS.up)
-      + cell("跌停家数", mo.dt + " 家", COLORS.down)
-      + cell("炸板率", mo.zbRate.toFixed(1) + "%（炸板 " + mo.zb + " 家）", mo.zbRate >= 30 ? COLORS.down : COLORS.gold)
-      + cell("最高连板", mo.maxLbc + " 板", COLORS.gold)
+      + cell("涨停家数", mo.zt + " 家", COLORS.up, "当天涨停家数。涨停多、跌停少＝情绪热；跌停成片＝恐慌。和跌停家数对照着看。")
+      + cell("跌停家数", mo.dt + " 家", COLORS.down, "当天跌停家数。明显增多是恐慌信号；和涨停家数对照看情绪冷热。")
+      + cell("炸板率", mo.zbRate.toFixed(1) + "%（炸板 " + mo.zb + " 家）", mo.zbRate >= 30 ? COLORS.down : COLORS.gold, "涨停后又被砸开的比例。越高（超过30%）说明追高的人在被埋，资金接力意愿差。")
+      + cell("最高连板", mo.maxLbc + " 板", COLORS.gold, "连板梯队的最高高度，是短线赚钱效应的天花板。5板以上有龙头带队，只剩2板就是群龙无首。")
       + cell("连板梯队", "≥2板 " + mo.lb2 + " 家 · ≥3板 " + mo.lb3 + " 家", "#e6edf7")
-      + cell("涨停封板资金", mo.fundYi.toFixed(1) + " 亿", COLORS.up)
-      + (mo.adv != null ? cell("涨跌家数（沪深）", mo.adv + " 涨 / " + mo.dec + " 跌", mo.adv >= mo.dec ? COLORS.up : COLORS.down) : "")
+      + cell("涨停封板资金", mo.fundYi.toFixed(1) + " 亿", COLORS.up, "封在涨停板上的买单总金额。越多说明封板越有底气、不容易被砸开。")
+      + (mo.adv != null ? cell("涨跌家数（沪深）", mo.adv + " 涨 / " + mo.dec + " 跌", mo.adv >= mo.dec ? COLORS.up : COLORS.down, "赚钱效应的广度。指数涨但下跌家数更多，就是只涨权重、多数人亏钱。") : "")
       + (mo.upRatio != null ? cell("上涨占比", mo.upRatio.toFixed(1) + "%", mo.upRatio >= 50 ? COLORS.up : COLORS.down) : "")
       + (mo.yztAvg != null ? cell("昨涨停今表现（" + mo.yztN + " 只）", (mo.yztAvg > 0 ? "+" : "") + mo.yztAvg.toFixed(2) + "% · 红盘 " + mo.yztRed.toFixed(0) + "%", mo.yztAvg >= 0 ? COLORS.up : COLORS.down) : "")
       + "</div>";
@@ -865,7 +872,7 @@
     }
     if (!sigs.length) { bar.style.display = "none"; return; }
     bar.style.display = "block";
-    bar.innerHTML = '<b style="color:var(--gold);">异动信号</b>　' + sigs.map(function (s) {
+    bar.innerHTML = '<b style="color:var(--gold);">异动信号</b><span class="info" tabindex="0" data-tip="规则触发的提醒：ETF转向、评分拐点、板块共振、情绪极端等。当闹钟用——响了去对应面板确认，别当买卖指令。">i</span>　' + sigs.map(function (s) {
       return '<span style="display:inline-block;margin:2px 6px 2px 0;padding:2px 10px;border:1px solid var(--line);border-radius:99px;background:#0d1420;">' + esc(s) + "</span>";
     }).join("");
   }
