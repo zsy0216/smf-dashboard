@@ -2023,6 +2023,11 @@
     });
   }
   var loading = false;
+  function withDeadline(promise, ms) {
+    return Promise.race([promise, new Promise(function (_, reject) {
+      setTimeout(function () { reject(new Error("整体超时 " + ms + "ms")); }, ms);
+    })]);
+  }
   function load(isFirst) {
     if (loading || document.hidden) { schedule(); return; }
     loading = true;
@@ -2032,7 +2037,7 @@
       renderCache();
       firstPaint = loadSnapshot().catch(function () {});
     }
-    firstPaint.then(function () { return buildData(); }).then(applyLive).catch(function (e) {
+    firstPaint.then(function () { return withDeadline(buildData(), 25000); }).then(applyLive).catch(function (e) {
       if (window.console) console.warn("[SMF] 直连失败，尝试快照", e);
       /* 直连失败时每一轮都重新拉一次快照：仓库里的快照会持续更新，
          不能停在第一次兜底的那一版上（否则页面会永远显示旧时间戳） */
@@ -2067,7 +2072,11 @@
   if (refreshBtn) refreshBtn.addEventListener("click", function () {
     /* 先秒拉一次最新快照（仓库里有更新就立刻换上），再走直连刷新 */
     loadSnapshot().catch(function () {});
-    if (loading) return;
+    if (loading) {
+      refreshBtn.textContent = "正在刷新…";
+      setTimeout(function () { if (!loading) setBtnBusy(false); }, 1200);
+      return;
+    }
     setBtnBusy(true);
     load(false);
   });
