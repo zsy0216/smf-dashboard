@@ -15,9 +15,16 @@ SMF Dashboard 数据快照生成器（GitHub Actions 定时运行，生成 data.
   - 龙虎榜为最近一个交易日席位明细聚合（机构专用 / 沪深股通 / 拉萨系 / 其余营业部=游资合计）
   - 情绪评分 = 四维加权：ETF 资金 30% + 杠杆情绪 20% + 板块轮动（广度）25% + 博弈结构 25%
 用法：python3 scripts/fetch_snapshot.py [输出路径=data.json]
+
+备选源：东财整轮不可达时自动改用新浪财经公开接口生成备选快照
+（个股资金流排行 + 两市成交额为新浪实时口径，其余面板沿用上一版
+东财快照并在 source/stamp 中明示）；环境变量 SMF_FORCE_SINA=1 可
+强制走新浪路径（验证用）。两源都失败才跳过本轮。
 """
+import copy
 import json
 import math
+import os
 import sys
 import threading
 import time
@@ -424,6 +431,122 @@ def fetch_mood(trade_date, prev_date=None):
     return mood
 
 
+# ================= 新浪备选源 =================
+# 东财对云 IP 限流整轮不可达时的备胎：新浪与东财是两套系统、限流互不影响。
+# 口径差异（明示在产出 source/stamp 中）：个股 net 为新浪「全单净额」
+# （netamount），非东财「主力净额（超大+大单）」；成交额为沪指+深综指
+# 成交额（hq.sinajs.cn），与东财口径一致。新浪无板块资金流/涨停池/
+# 龙虎榜/融资融券对应公开接口，这些面板沿用上一版东财快照。
+SINA_H = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+          "Referer": "https://finance.sina.com.cn/"}
+SINA_API = "https://vip.stock.finance.sina.com.cn/quotes_service/api/json_v2.php"
+
+
+def sina_json(url, timeout=12, retries=3):
+    last = None
+    for i in range(retries):
+        try:
+            _pace()
+            r = requests.get(url, headers=SINA_H, timeout=timeout)
+            r.raise_for_status()
+            j = r.json()
+            if isinstance(j, dict) and j.get("__ERROR"):
+                raise RuntimeError(f"sina input error: {url}")
+            return j
+        except Exception as e:
+            last = e
+            time.sleep(2.0 * (i + 1))
+    raise last
+
+
+def sina_stocks_top():
+    """个股资金流 Top10 流入/流出（新浪全单净额口径）。"""
+    def top(asc):
+        rows = sina_json(f"{SINA_API}/MoneyFlow.ssl_bkzj_ssggzj"
+                         f"?page=1&num=10&sort=netamount&asc={asc}")
+        out = []
+        for x in rows:
+            sym = x.get("symbol") or ""
+            code = sym[2:] if sym[:2] in ("sh", "sz", "bj") else sym
+            out.append({
+                "name": x.get("name") or "",
+                "code": code,
+                "price": float(x.get("trade") or 0),
+                "chg": round(float(x.get("changeratio") or 0) * 100, 2),
+                "net": round(float(x.get("netamount") or 0) / YI, 2),
+                "ratio": round(float(x.get("ratioamount") or 0) * 100, 2),
+                "amt": round(float(x.get("amount") or 0) / YI, 1),
+            })
+        return out
+    return {"in": top(0), "out": top(1)}
+
+
+def sina_turnover_yuan():
+    """两市成交额（元）= 上证指数成交额 + 深证综指成交额（hq.sinajs.cn，单位万元）。"""
+    _pace()
+    r = requests.get("https://hq.sinajs.cn/list=s_sh000001,s_sz399106",
+                     headers=SINA_H, timeout=12)
+    r.raise_for_status()
+    text = r.content.decode("gbk", "ignore")
+    total_wan = 0.0
+    for line in text.strip().splitlines():
+        body = line.split('"')[1] if '"' in line else ""
+        parts = body.split(",")
+        if len(parts) >= 6:
+            total_wan += float(parts[5])
+    if total_wan <= 0:
+        raise RuntimeError("sina turnover empty")
+    return total_wan * 1e4
+
+
+def build_sina_fallback(prev):
+    """东财不可达时的备选快照：today 的个股榜/成交额换新浪实时值，
+    其余作用域与面板沿用上一版东财快照（prev），并在 source/stamp 明示。"""
+    if not prev or not prev.get("data") or "today" not in prev["data"]:
+        raise RuntimeError("新浪备选需要上一版 data.json 作为沿用底稿，但不存在")
+    stocks = sina_stocks_top()
+    turnover_yuan = sina_turnover_yuan()
+    now = _now_cst()
+    today_str = now[:10]
+    data = copy.deepcopy(prev["data"])
+    t = data["today"]
+    # 成交额涨跌：与上一交易日全天比较（新浪无同时段分时）
+    spark_t = (t.get("spark") or {}).get("turnover") or []
+    if prev.get("trade_date") == today_str and len(spark_t) >= 2:
+        prev_day_wanyi = spark_t[-2]
+    elif spark_t:
+        prev_day_wanyi = spark_t[-1]
+    else:
+        prev_day_wanyi = 0
+    t_v_wanyi = turnover_yuan / 1e12
+    if prev_day_wanyi:
+        t_chg = (t_v_wanyi / prev_day_wanyi - 1) * 100
+        if prev.get("trade_date") == today_str:
+            spark_t[-1] = round(t_v_wanyi, 2)
+        else:
+            spark_t.append(round(t_v_wanyi, 2))
+            del spark_t[:-8]
+        t.setdefault("spark", {})["turnover"] = spark_t
+    else:
+        t_chg = 0.0
+    t["kpi"]["turnover"] = {"v": round(t_v_wanyi, 2), "unit": "万亿",
+                            "chg": round(t_chg, 1), "chgUnit": "%",
+                            "hint": "较前一交易日全天 · 新浪口径（备选轮次）"}
+    t["stocks"] = stocks
+    t["stamp"] = (f"单日口径 · 本轮为新浪备选（东财不可达）：个股资金流/成交额为"
+                  f"新浪实时口径（个股为全单净额），其余面板沿用 {prev.get('updated_at', '')} "
+                  f"东财快照 · 融资截至 {prev.get('margin_date', '')} · 龙虎榜 {prev.get('lhb_date', '')}")
+    return {
+        "updated_at": now,
+        "trade_date": today_str if turnover_yuan > 0 else prev.get("trade_date", today_str),
+        "source": "新浪财经公开接口（备选快照：东财不可达时启用）",
+        "lhb_date": prev.get("lhb_date", ""),
+        "margin_date": prev.get("margin_date", ""),
+        "data": data,
+    }
+
+
 def build():
     turnover_hist, prev_same_time = fetch_turnover()
     time.sleep(1)
@@ -615,7 +738,24 @@ def build():
 
 if __name__ == "__main__":
     out_path = sys.argv[1] if len(sys.argv) > 1 else "data.json"
-    payload = build()
+    prev = None
+    for cand in (out_path, "data.json"):
+        try:
+            if os.path.exists(cand):
+                with open(cand, encoding="utf-8") as f:
+                    prev = json.load(f)
+                break
+        except Exception:
+            prev = None
+    if os.environ.get("SMF_FORCE_SINA") == "1":
+        print("SMF_FORCE_SINA=1: skipping eastmoney, using sina fallback")
+        payload = build_sina_fallback(prev)
+    else:
+        try:
+            payload = build()
+        except Exception as e:
+            print(f"eastmoney build failed: {e!r}; falling back to sina")
+            payload = build_sina_fallback(prev)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=1)
     print(f"wrote {out_path} updated_at={payload['updated_at']} "

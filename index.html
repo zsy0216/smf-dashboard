@@ -2018,7 +2018,8 @@
       lastOkAt = new Date();
       currentDataAt = snapAt || Date.now();
       saveCache(j.data);
-      setStatus("snap", "快照数据 · " + (j.updated_at || ""));
+      var srcTag = (j.source && j.source.indexOf("新浪") >= 0) ? "（新浪备选）" : "";
+      setStatus("snap", "快照数据" + srcTag + " · " + (j.updated_at || ""));
       setStamp((j.updated_at || "") + "（快照兜底）");
     });
   }

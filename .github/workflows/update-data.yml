@@ -8,6 +8,11 @@ on:
     # UTC 01:00-07:59 = 北京时间 09:00-15:59，周一到周五
     - cron: "*/10 1-7 * * 1-5"
   workflow_dispatch:
+    inputs:
+      force_sina:
+        description: "强制使用新浪备选源（验证用）"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -30,6 +35,8 @@ jobs:
         run: pip install --quiet requests
 
       - name: Fetch snapshot
+        env:
+          SMF_FORCE_SINA: ${{ inputs.force_sina && '1' || '' }}
         # 东方财富对云厂商出口 IP 的 502 是间歇性的，整轮失败时隔 30 秒重试，最多 3 轮
         run: |
           ok=0
