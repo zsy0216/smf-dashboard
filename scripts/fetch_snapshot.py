@@ -342,6 +342,54 @@ def fetch_flow():
     return flow, flow_daily
 
 
+def seg_from_klines(rows):
+    """分钟累计主力净额 → [上午, 下午, 尾盘] 三段（亿元，1 位小数）。
+
+    上午=cum(≤11:30)，下午=cum(≤14:29)−cum(≤11:30)，尾盘=cum(最后)−cum(≤14:29)；
+    时段尚无分钟线落入时该段为 None（如盘中下午/尾盘未开始）。
+    """
+    if not rows:
+        return None
+    cum1130 = cum1429 = last = None
+    has_am = has_pm = has_tail = False
+    for row in rows:
+        p = row.split(",")
+        t = p[0][11:16]
+        try:
+            v = float(p[1])
+        except (ValueError, IndexError):
+            continue
+        last = v
+        if t <= "11:30":
+            cum1130 = v
+            has_am = True
+        if t <= "14:29":
+            cum1429 = v
+        if "11:30" < t <= "14:29":
+            has_pm = True
+        if t > "14:29":
+            has_tail = True
+    if last is None:
+        return None
+    am = round(cum1130 / YI, 1) if has_am else None
+    pm = round((cum1429 - (cum1130 or 0.0)) / YI, 1) if has_pm else None
+    tail = round((last - cum1429) / YI, 1) if has_tail else None
+    return [am, pm, tail]
+
+
+def fetch_etf_seg(secid):
+    """单只 ETF 的今日分时段主力净流入；失败返回 None（前端优雅降级）。"""
+    fields = ("fields1=f1,f2,f3,f7&fields2=f51,f52,f53,f54,f55,f56,"
+              "f57,f58,f59,f60,f61,f62,f63")
+    url = ("https://push2.eastmoney.com/api/qt/stock/fflow/kline/get"
+           f"?lmt=0&klt=1&secid={secid}&{fields}&ut={UT_HIS}")
+    try:
+        rows = get_json_hosts(url, FLOW_HOSTS)["data"]["klines"]
+    except Exception:
+        rows = []
+    return seg_from_klines(rows)
+
+
 def fetch_stocks():
     """全市场个股主力净额 Top10 流入/流出（今日）。"""
     fields = "f12,f14,f2,f3,f6,f62,f184"
@@ -581,6 +629,13 @@ def build():
         futs = {ex.submit(fflow_daily, s, 21): s for s in ETF_WATCH}
         for fut, secid in list(futs.items()):
             etf_ff[secid] = fut.result()
+    etf_seg = {}
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futs = {ex.submit(fetch_etf_seg, s): s for s in ETF_WATCH}
+        for fut, secid in list(futs.items()):
+            seg = fut.result()
+            if seg is not None:
+                etf_seg[secid] = seg
 
     # ---- 龙虎榜博弈结构分（各周期共用最近交易日） ----
     if lhb:
@@ -632,11 +687,14 @@ def build():
                 ratio = e.get(rf)
             etf_net_sum += net
             premium = ((e["f2"] / e["f441"] - 1) * 100) if e.get("f441") else 0.0
-            etf_rows.append({
+            etf_row = {
                 "name": e["f14"], "code": e["f12"], "net": round(net, 1),
                 "share": round(ratio, 2) if ratio is not None else 0.0,
                 "premium": round(premium, 2), "aum": round((e.get("f20") or 0) / YI),
-            })
+            }
+            if pk == "today" and secid in etf_seg:
+                etf_row["seg"] = etf_seg[secid]
+            etf_rows.append(etf_row)
         etf_turn = sum((e.get("f6") or 0) for e in etfs) / YI
         etf_ratio = (etf_net_sum / etf_turn * 100) if etf_turn else 0.0
         # 融资（T+1）：周期净买入与余额变动

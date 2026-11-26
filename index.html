@@ -713,6 +713,13 @@
   function renderEtfTable(D) {
     var body = $("etfBody");
     if (!body) return;
+    var hasSeg = false;
+    for (var h = 0; h < D.etf.length; h++) if (D.etf[h].seg) { hasSeg = true; break; }
+    var head = document.querySelector(".tb-etf thead tr");
+    if (head) {
+      head.innerHTML = "<th>ETF 名称</th><th>净流入</th><th>主力净占比</th><th>折溢价</th><th>规模</th>"
+        + (hasSeg ? "<th>上午</th><th>下午</th><th>尾盘<span class=\"info\" tabindex=\"0\" data-tip=\"14:30–15:00 的主力净流入，最能看出尾盘是否有资金进场扫货\">i</span></th>" : "");
+    }
     var html = "";
     for (var i = 0; i < D.etf.length; i++) {
       var e = D.etf[i];
@@ -721,8 +728,16 @@
         + '<td class="num" style="font-weight:700;' + toneStyle(e.net) + '">' + signNum(e.net, 1) + '</td>'
         + '<td class="num" style="' + toneStyle(e.share) + '">' + signNum(e.share, 2) + '</td>'
         + '<td class="num" style="' + toneStyle(e.premium) + '">' + signNum(e.premium, 2) + '%</td>'
-        + '<td class="num" style="color:#b9c7db">' + e.aum.toFixed(0) + '</td>'
-        + "</tr>";
+        + '<td class="num" style="color:#b9c7db">' + e.aum.toFixed(0) + '</td>';
+      if (hasSeg) {
+        for (var s2 = 0; s2 < 3; s2++) {
+          var v = e.seg ? e.seg[s2] : null;
+          html += (v === null || v === undefined)
+            ? '<td class="num"><span style="color:#5b6b82">—</span></td>'
+            : '<td class="num" style="' + toneStyle(v) + '">' + signNum(v, 1) + '</td>';
+        }
+      }
+      html += "</tr>";
     }
     body.innerHTML = html;
 
@@ -1126,7 +1141,7 @@
       series: [{
         type: "scatter",
         data: data,
-        symbolSize: function (v) { return 14 + Math.sqrt(v[2]) * 3.6; },
+        symbolSize: function (v) { return Math.min(48, 9 + Math.sqrt(v[2]) * 7); },
         label: {
           show: true, position: "top", distance: 6,
           formatter: function (p) { return p.name; },
@@ -1593,6 +1608,38 @@
     }
     return attempt();
   }
+  /* 宽基 ETF 分时段：分钟累计主力净额切成 上午/下午/尾盘 三段（亿元）。
+     累计曲线午休不推进：上午=cum(≤11:30)，下午=cum(≤14:29)−cum(≤11:30)，
+     尾盘=cum(最后)−cum(≤14:29)；时段尚无分钟线落入时该段为 null。 */
+  function segFromKlines(rows) {
+    if (!rows || !rows.length) return null;
+    var cum1130 = null, cum1429 = null, last = null;
+    var hasAm = false, hasPm = false, hasTail = false;
+    for (var i = 0; i < rows.length; i++) {
+      var p = rows[i].split(",");
+      var t = p[0].slice(11, 16), v = parseFloat(p[1]);
+      if (!t || isNaN(v)) continue;
+      last = v;
+      if (t <= "11:30") { cum1130 = v; hasAm = true; }
+      if (t <= "14:29") cum1429 = v;
+      if (t > "11:30" && t <= "14:29") hasPm = true;
+      if (t > "14:29") hasTail = true;
+    }
+    if (last === null) return null;
+    return [
+      hasAm ? round(cum1130 / YI, 1) : null,
+      hasPm ? round((cum1429 - (cum1130 || 0)) / YI, 1) : null,
+      hasTail ? round((last - cum1429) / YI, 1) : null
+    ];
+  }
+  function fetchEtfSeg(secid) {
+    /* 60 秒内复用缓存，避免每轮刷新对 8 只 ETF 全量重拉分钟线触发限流 */
+    return cached("etfseg|" + secid, 60000, function () {
+      return fetchFlowKline(secid);
+    }, function (v) { return v && v.length > 0; }).then(function (rows) {
+      return segFromKlines(rows);
+    }).catch(function () { return null; });
+  }
   function fetchFlow() {
     return Promise.all([
       safe(fetchFlowKline("1.000001"), []),
@@ -1764,6 +1811,10 @@
       ETF_WATCH.forEach(function (s) {
         jobs.push(fflowDaily(s, 21).then(function (v) { etfFf[s] = v; }));
       });
+      var etfSeg = {};
+      ETF_WATCH.forEach(function (s) {
+        jobs.push(fetchEtfSeg(s).then(function (v) { etfSeg[s] = v; }));
+      });
       return Promise.all([Promise.all(jobs), moodP, flowP, stocksP]).then(function (r2) {
         var mood = r2[1], flowRes = r2[2], stocks = r2[3];
         var lhbDate = lhb ? lhb.date : "", lhbList = lhb ? lhb.list : [];
@@ -1798,12 +1849,14 @@
               ratio = null;
             } else { netV = (e[nf] || 0) / YI; ratio = e[rf]; }
             etfNetSum += netV;
-            etfRows.push({
+            var etfRow = {
               name: e.f14, code: e.f12, net: round(netV, 1),
               share: ratio === null || ratio === undefined ? 0 : round(ratio, 2),
               premium: e.f441 ? round((e.f2 / e.f441 - 1) * 100, 2) : 0,
               aum: round((e.f20 || 0) / YI)
-            });
+            };
+            if (pk === "today" && etfSeg[secid]) etfRow.seg = etfSeg[secid];
+            etfRows.push(etfRow);
           });
           var etfTurn = etfs.reduce(function (s, e) { return s + (e.f6 || 0); }, 0) / YI;
           var etfRatio = etfTurn ? etfNetSum / etfTurn * 100 : 0;
