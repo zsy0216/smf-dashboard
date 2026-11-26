@@ -698,7 +698,7 @@
     var html = "";
     for (var c = 0; c < 8; c++) {
       html += '<th style="color:#7d8ea8' + (c === 7 ? ";font-weight:800" : "") + '">' + SEG_HEADS[c];
-      if (c === 0 && tip) html += '<span class="info" tabindex="0" data-tip="' + tip + '">i</span>';
+      if (c === 0 && tip) html += '<span class="info d l" tabindex="0" data-tip="' + tip + '">i</span>';
       html += "</th>";
     }
     return html;
@@ -1169,8 +1169,8 @@
       }),
       xAxis: {
         type: "value",
-        min: xMin - xPad,
-        max: xMax + xPad,
+        min: Math.floor((xMin - xPad) * 10) / 10,
+        max: Math.ceil((xMax + xPad) * 10) / 10,
         name: "涨跌幅 %",
         nameLocation: "middle",
         nameGap: 22,
@@ -1182,8 +1182,8 @@
       },
       yAxis: {
         type: "value",
-        min: yMin - yPad,
-        max: yMax + yPad,
+        min: Math.floor(yMin - yPad),
+        max: Math.ceil(yMax + yPad),
         name: "大单净流入（亿元）",
         nameLocation: "end",
         nameGap: 12,
