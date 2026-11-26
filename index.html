@@ -183,7 +183,7 @@
   /* ---------- 标签 ---------- */
   .tag{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px; white-space:nowrap; border:1px solid; }
   .tag-acc{ color:#fca5a5; background:rgba(239,68,68,.13); border-color:rgba(239,68,68,.34); }
-  .tag-res{ color:#fda4af; background:rgba(244,63,94,.15); border-color:rgba(244,63,94,.36); }
+  .tag-res{ color:#7dd3fc; background:rgba(56,189,248,.15); border-color:rgba(56,189,248,.36); }
   .tag-dist{ color:#fcd34d; background:rgba(245,158,11,.14); border-color:rgba(245,158,11,.36); }
   .tag-div{ color:#d8b4fe; background:rgba(168,85,247,.14); border-color:rgba(168,85,247,.34); }
   .tag-out{ color:#6ee7b7; background:rgba(16,185,129,.13); border-color:rgba(16,185,129,.34); }
@@ -346,36 +346,23 @@
       <div class="right" id="etfHdRight">--</div>
     </div>
     <div class="panel-bd">
-      <div class="grid-2">
-        <div>
-          <div class="chart" id="chartEtf"></div>
-          <div class="legend">
-            <span><i style="background:#ef4444"></i>主力净流入</span>
-            <span><i style="background:#10b981"></i>主力净流出</span>
-            <span style="color:var(--dim)">悬停柱体可查看主力净占比与折溢价率</span>
-          </div>
-        </div>
-        <div>
-          <div class="tbl-wrap">
-            <table class="tb tb-etf">
-              <thead>
-                <tr>
-                  <th>ETF 名称</th>
-                  <th>净流入</th>
-                  <th>主力净占比</th>
-                  <th>折溢价</th>
-                  <th>规模</th>
-                </tr>
-              </thead>
-              <tbody id="etfBody"></tbody>
-            </table>
-          </div>
-          <div class="sub-note" style="margin-top:10px;line-height:1.7;">
-            <span class="info" tabindex="0" data-tip="场内价格比净值贵多少。显著为正说明在追高买入；持续净申购且折溢价平稳，才更接近配置型资金。">i</span>折溢价率 &gt; +0.3% 说明场内价格显著高于净值，多为追高买入；持续净申购且折溢价平稳，才更接近配置型资金。
-          </div>
+      <div style="position:relative;">
+        <div class="chart" id="chartEtf"></div>
+        <div class="legend" style="position:absolute;top:4px;right:10px;z-index:5;margin-top:0;">
+          <span><i style="background:#ef4444"></i>主力净流入</span>
+          <span><i style="background:#10b981"></i>主力净流出</span>
+          <span style="color:var(--dim)">悬停柱体可查看主力净占比与折溢价率</span>
         </div>
       </div>
-      <div id="etfSegWrap" style="display:none"></div>
+      <div class="tbl-wrap" style="margin-top:10px;">
+        <table class="tb tb-etf" id="etfTable" style="min-width:640px;">
+          <thead id="etfHead"></thead>
+          <tbody id="etfBody"></tbody>
+        </table>
+      </div>
+      <div class="sub-note" style="margin-top:10px;line-height:1.7;">
+        <span class="info" tabindex="0" data-tip="场内价格比净值贵多少。显著为正说明在追高买入；持续净申购且折溢价平稳，才更接近配置型资金。">i</span>折溢价率 &gt; +0.3% 说明场内价格显著高于净值，多为追高买入；持续净申购且折溢价平稳，才更接近配置型资金。
+      </div>
     </div>
   </section>
 
@@ -390,29 +377,22 @@
       <div class="right" id="sectorHdRight">--</div>
     </div>
     <div class="panel-bd">
-      <div class="chart chart-sm" id="chartSector"></div>
-      <div class="legend">
-        <span><i style="background:#ef4444"></i>主力吸筹</span>
-        <span><i style="background:#f43f5e"></i>主升共振</span>
-        <span><i style="background:#f59e0b"></i>高位派发预警</span>
-        <span><i style="background:#a855f7"></i>拆单暗吸 / 量价背离</span>
-        <span><i style="background:#10b981"></i>资金撤离</span>
+      <div style="position:relative;">
+        <div class="chart chart-sm" id="chartSector"></div>
+        <div class="legend" style="position:absolute;top:4px;right:10px;z-index:5;margin-top:0;">
+          <span><i style="background:#ef4444"></i>主力吸筹</span>
+          <span><i style="background:#38bdf8"></i>主升共振</span>
+          <span><i style="background:#f59e0b"></i>高位派发预警</span>
+          <span><i style="background:#a855f7"></i>拆单暗吸 / 量价背离</span>
+          <span><i style="background:#10b981"></i>资金撤离</span>
+        </div>
       </div>
       <div class="tbl-wrap" style="margin-top:14px;">
-        <table class="tb" style="min-width:640px;">
-          <thead>
-            <tr>
-              <th>板块名称</th>
-              <th>涨跌幅</th>
-              <th>大单净流入(亿)</th>
-              <th>超大单净额(亿)</th>
-              <th style="text-align:center">资金信号</th>
-            </tr>
-          </thead>
+        <table class="tb" id="sectorTable" style="min-width:640px;">
+          <thead id="sectorHead"></thead>
           <tbody id="sectorBody"></tbody>
         </table>
       </div>
-      <div id="sectorSegWrap" style="display:none"></div>
       <div style="margin-top:16px;">
         <div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">板块多周期热力 · 大单净额（亿）<span class="info" tabindex="0" data-tip="同一批板块在今日/3日/5日/20日四个周期的净额。一整行都红＝多周期共振、真趋势；只有今日一格红＝一日游。">i</span></div>
         <div style="font-size:11px;color:var(--dim);margin-bottom:8px;">同一板块在四个周期的持续性：整行红＝资金持续流入的主线；只有「今日」红＝一日游。-- 表示该周期未进前 5/后 3</div>
@@ -556,7 +536,7 @@
   var COLORS = {
     up: "#ef4444",       /* 上涨 / 净流入 */
     down: "#10b981",     /* 下跌 / 净流出 */
-    res: "#f43f5e",
+    res: "#38bdf8",
     dist: "#f59e0b",
     div: "#a855f7",
     neu: "#64748b",
@@ -712,9 +692,43 @@
     setText("dims-hint", "四维均值 " + avg + " 分 · 四维同步大于 60 视为资金共振；任一维度低于 50 即降杠杆");
   }
 
+  /* 半小时分段列（ETF/板块合并宽表共用）：表头字色调暗、尾盘列加粗；格着色与原矩阵一致 */
+  var SEG_HEADS = ["9:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30 尾盘"];
+  function segHeadHtml(tip) {
+    var html = "";
+    for (var c = 0; c < 8; c++) {
+      html += '<th style="color:#7d8ea8' + (c === 7 ? ";font-weight:800" : "") + '">' + SEG_HEADS[c];
+      if (c === 0 && tip) html += '<span class="info" tabindex="0" data-tip="' + tip + '">i</span>';
+      html += "</th>";
+    }
+    return html;
+  }
+  function segCellHtml(v, bold, maxAbs) {
+    if (v === null || v === undefined) return '<td class="num" style="color:#5b6b82">—</td>';
+    var a = Math.min(0.55, Math.abs(v) / maxAbs * 0.55 + 0.06);
+    var bg = v >= 0 ? "rgba(239,68,68," + a + ")" : "rgba(16,185,129," + a + ")";
+    return '<td class="num" style="background:' + bg + (bold ? ";font-weight:700" : "") + '">' + signNum(v, 1) + '</td>';
+  }
+  function segMaxAbs(rows) {
+    var m = 0;
+    rows.forEach(function (r) {
+      (r.seg8 || []).forEach(function (v) { if (v !== null && v !== undefined && Math.abs(v) > m) m = Math.abs(v); });
+    });
+    return m || 1;
+  }
+
   function renderEtfTable(D) {
-    var body = $("etfBody");
+    var head = $("etfHead"), body = $("etfBody");
     if (!body) return;
+    var hasSeg = false;
+    for (var h = 0; h < D.etf.length; h++) if (D.etf[h].seg8) { hasSeg = true; break; }
+    if (head) {
+      var hh = "<tr><th>ETF 名称</th><th>净流入</th><th>主力净占比</th><th>折溢价</th><th>规模</th>";
+      if (hasSeg) hh += segHeadHtml("每格是该半小时内的主力净流入：横向看哪只 ETF 在哪个时段被买，纵向比同一时段哪只最强；最后一列 14:30–15:00 即尾盘");
+      head.innerHTML = hh + "</tr>";
+    }
+    var maxAbs = hasSeg ? segMaxAbs(D.etf) : 1;
+    var sums = [null, null, null, null, null, null, null, null];
     var html = "";
     for (var i = 0; i < D.etf.length; i++) {
       var e = D.etf[i];
@@ -723,8 +737,22 @@
         + '<td class="num" style="font-weight:700;' + toneStyle(e.net) + '">' + signNum(e.net, 1) + '</td>'
         + '<td class="num" style="' + toneStyle(e.share) + '">' + signNum(e.share, 2) + '</td>'
         + '<td class="num" style="' + toneStyle(e.premium) + '">' + signNum(e.premium, 2) + '%</td>'
-        + '<td class="num" style="color:#b9c7db">' + e.aum.toFixed(0) + '</td>'
-        + "</tr>";
+        + '<td class="num" style="color:#b9c7db">' + e.aum.toFixed(0) + '</td>';
+      if (hasSeg) {
+        for (var c = 0; c < 8; c++) {
+          var v = e.seg8 ? e.seg8[c] : null;
+          if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
+          html += segCellHtml(v, false, maxAbs);
+        }
+      }
+      html += "</tr>";
+    }
+    if (hasSeg) {
+      html += '<tr><td><span style="font-weight:700">合计</span></td>'
+        + '<td class="num" style="color:#5b6b82">—</td><td class="num" style="color:#5b6b82">—</td>'
+        + '<td class="num" style="color:#5b6b82">—</td><td class="num" style="color:#5b6b82">—</td>';
+      for (var c2 = 0; c2 < 8; c2++) html += segCellHtml(sums[c2] === null ? null : Math.round(sums[c2] * 10) / 10, true, maxAbs);
+      html += "</tr>";
     }
     body.innerHTML = html;
 
@@ -733,92 +761,19 @@
     setHtml("etfHdRight", "合计 <b style='color:" + (sum >= 0 ? COLORS.up : COLORS.down) + "'>" + signNum(sum, 1) + " 亿元</b>　|　" + esc(D.stamp));
   }
 
-  /* 宽基 ETF 半小时分段矩阵（仅今日周期且带 seg8 时显示，挂在 ETF 表格下方） */
-  function renderEtfSeg(D) {
-    var wrap = $("etfSegWrap");
-    if (!wrap) return;
-    var has = false;
-    for (var h = 0; h < D.etf.length; h++) if (D.etf[h].seg8) { has = true; break; }
-    if (!has) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
-    var heads = ["9:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30 尾盘"];
-    var maxAbs = 0;
-    D.etf.forEach(function (e) {
-      (e.seg8 || []).forEach(function (v) { if (v !== null && v !== undefined && Math.abs(v) > maxAbs) maxAbs = Math.abs(v); });
-    });
-    if (!maxAbs) maxAbs = 1;
-    function cell(v, bold) {
-      if (v === null || v === undefined) return '<td class="num" style="color:#5b6b82">—</td>';
-      var a = Math.min(0.55, Math.abs(v) / maxAbs * 0.55 + 0.06);
-      var bg = v >= 0 ? "rgba(239,68,68," + a + ")" : "rgba(16,185,129," + a + ")";
-      return '<td class="num" style="background:' + bg + (bold ? ";font-weight:700" : "") + '">' + signNum(v, 1) + '</td>';
-    }
-    var html = '<div style="font-size:13px;font-weight:700;margin:14px 0 8px;">分时段主力净流入（半小时）'
-      + '<span class="info" tabindex="0" data-tip="每格是该半小时内的主力净流入：横向看哪只 ETF 在哪个时段被买，纵向比同一时段哪只最强；最后一列 14:30–15:00 即尾盘">i</span></div>'
-      + '<div class="tbl-wrap"><table class="tb" style="min-width:640px;"><thead><tr><th>ETF</th>'
-      + heads.map(function (hd, ci) { return ci === 7 ? '<th style="font-weight:800">' + hd + '</th>' : '<th>' + hd + '</th>'; }).join("")
-      + '</tr></thead><tbody>';
-    var sums = [null, null, null, null, null, null, null, null];
-    D.etf.forEach(function (e) {
-      html += '<tr><td><span style="font-weight:600">' + esc(e.name) + '</span></td>';
-      for (var c = 0; c < 8; c++) {
-        var v = e.seg8 ? e.seg8[c] : null;
-        if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
-        html += cell(v, false);
-      }
-      html += "</tr>";
-    });
-    html += '<tr><td><span style="font-weight:700">合计</span></td>';
-    for (var c2 = 0; c2 < 8; c2++) html += cell(sums[c2] === null ? null : Math.round(sums[c2] * 10) / 10, true);
-    html += "</tr></tbody></table></div>";
-    wrap.innerHTML = html;
-    wrap.style.display = "";
-  }
-
-  /* 板块半小时分段矩阵（仅今日周期且带 seg8 时显示，挂在板块表格下方；只渲染带 seg8 的前 5 行） */
-  function renderSectorSeg(D) {
-    var wrap = $("sectorSegWrap");
-    if (!wrap) return;
-    var rows = [];
-    for (var h = 0; h < D.sectors.length; h++) if (D.sectors[h].seg8) rows.push(D.sectors[h]);
-    if (!rows.length) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
-    var heads = ["9:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30 尾盘"];
-    var maxAbs = 0;
-    rows.forEach(function (s) {
-      (s.seg8 || []).forEach(function (v) { if (v !== null && v !== undefined && Math.abs(v) > maxAbs) maxAbs = Math.abs(v); });
-    });
-    if (!maxAbs) maxAbs = 1;
-    function cell(v, bold) {
-      if (v === null || v === undefined) return '<td class="num" style="color:#5b6b82">—</td>';
-      var a = Math.min(0.55, Math.abs(v) / maxAbs * 0.55 + 0.06);
-      var bg = v >= 0 ? "rgba(239,68,68," + a + ")" : "rgba(16,185,129," + a + ")";
-      return '<td class="num" style="background:' + bg + (bold ? ";font-weight:700" : "") + '">' + signNum(v, 1) + '</td>';
-    }
-    var html = '<div style="font-size:13px;font-weight:700;margin:14px 0 8px;">分时段主力净流入（半小时）'
-      + '<span class="info" tabindex="0" data-tip="今日主力净流入前 5 名板块，每格是该半小时内的主力净流入（口径与板块表一致）：横向看哪个板块在哪个时段被买，纵向比同一时段哪家最强；最后一列 14:30–15:00 即尾盘">i</span></div>'
-      + '<div class="tbl-wrap"><table class="tb" style="min-width:640px;"><thead><tr><th>板块</th>'
-      + heads.map(function (hd, ci) { return ci === 7 ? '<th style="font-weight:800">' + hd + '</th>' : '<th>' + hd + '</th>'; }).join("")
-      + '</tr></thead><tbody>';
-    var sums = [null, null, null, null, null, null, null, null];
-    rows.forEach(function (s) {
-      html += '<tr><td><span style="font-weight:600">' + esc(s.name) + '</span></td>';
-      for (var c = 0; c < 8; c++) {
-        var v = s.seg8 ? s.seg8[c] : null;
-        if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
-        html += cell(v, false);
-      }
-      html += "</tr>";
-    });
-    html += '<tr><td><span style="font-weight:700">合计</span></td>';
-    for (var c2 = 0; c2 < 8; c2++) html += cell(sums[c2] === null ? null : Math.round(sums[c2] * 10) / 10, true);
-    html += "</tr></tbody></table></div>";
-    wrap.innerHTML = html;
-    wrap.style.display = "";
-  }
-
   function renderSectorTable(D) {
-    var body = $("sectorBody");
+    var head = $("sectorHead"), body = $("sectorBody");
     if (!body) return;
     var arr = D.sectors.slice().sort(function (a, b) { return b.big - a.big; });
+    var hasSeg = false;
+    for (var h = 0; h < arr.length; h++) if (arr[h].seg8) { hasSeg = true; break; }
+    if (head) {
+      var hh = '<tr><th>板块名称</th><th>涨跌幅</th><th>大单净流入(亿)</th><th>超大单净额(亿)</th><th style="text-align:center">资金信号</th>';
+      if (hasSeg) hh += segHeadHtml("今日主力净流入前 5 名板块带分段，每格是该半小时内的主力净流入（口径与板块表一致）：横向看哪个板块在哪个时段被买，纵向比同一时段哪家最强；最后一列 14:30–15:00 即尾盘");
+      head.innerHTML = hh + "</tr>";
+    }
+    var maxAbs = hasSeg ? segMaxAbs(arr) : 1;
+    var sums = [null, null, null, null, null, null, null, null];
     var html = "", pos = 0, neg = 0;
     for (var i = 0; i < arr.length; i++) {
       var s = arr[i];
@@ -830,8 +785,23 @@
         + '<td class="num" style="font-weight:700;' + toneStyle(s.big) + '">' + signNum(s.big, 1) + '</td>'
         + '<td class="num" style="' + toneStyle(s.margin) + '">' + signNum(s.margin, 1) + '</td>'
         + '<td style="text-align:center"><span class="tag tag-' + sig.k + '">' + esc(sig.t) + "</span>"
-        + '<div class="sub-note" style="margin-top:2px">量比 ' + s.vol.toFixed(2) + "</div></td>"
-        + "</tr>";
+        + '<div class="sub-note" style="margin-top:2px">量比 ' + s.vol.toFixed(2) + "</div></td>";
+      if (hasSeg) {
+        for (var c = 0; c < 8; c++) {
+          var v = s.seg8 ? s.seg8[c] : null;
+          if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
+          html += segCellHtml(v, false, maxAbs);
+        }
+      }
+      html += "</tr>";
+    }
+    if (hasSeg) {
+      /* 合计行不带 data-bk、不可点（钻取委托只认带 data-bk 的行） */
+      html += '<tr><td><span style="font-weight:700">合计</span></td>'
+        + '<td class="num" style="color:#5b6b82">—</td><td class="num" style="color:#5b6b82">—</td>'
+        + '<td class="num" style="color:#5b6b82">—</td><td style="text-align:center;color:#5b6b82">—</td>';
+      for (var c2 = 0; c2 < 8; c2++) html += segCellHtml(sums[c2] === null ? null : Math.round(sums[c2] * 10) / 10, true, maxAbs);
+      html += "</tr>";
     }
     body.innerHTML = html;
     setHtml("sectorHdRight", "净流入合计 <b style='color:" + COLORS.up + "'>" + signNum(pos, 1) + "</b> 亿　净流出 <b style='color:" + COLORS.down + "'>" + signNum(neg, 1) + "</b> 亿");
@@ -1096,7 +1066,7 @@
           borderRadius: v >= 0 ? [5, 5, 0, 0] : [0, 0, 5, 5],
           shadowBlur: 14, shadowColor: v >= 0 ? "rgba(239,68,68,.28)" : "rgba(16,185,129,.26)"
         },
-        label: { position: v >= 0 ? "top" : "bottom", color: v >= 0 ? "#ef4444" : "#10b981" }
+        label: { position: v >= 0 ? "top" : "insideBottom", color: v >= 0 ? "#ef4444" : "#e6f4ea" }
       });
     }
     return {
@@ -1375,9 +1345,7 @@
     try { renderMatrix(); } catch (e) { if (window.console) console.error("[matrix]", e); }
     try { renderStocks(); } catch (e) { if (window.console) console.error("[stocks]", e); }
     try { renderEtfTable(D); } catch (e) { if (window.console) console.error("[etf]", e); }
-    try { renderEtfSeg(D); } catch (e) { if (window.console) console.error("[etfseg]", e); }
     try { renderSectorTable(D); } catch (e) { if (window.console) console.error("[sector]", e); }
-    try { renderSectorSeg(D); } catch (e) { if (window.console) console.error("[sectorseg]", e); }
     try { renderLhbSummary(D); } catch (e) { if (window.console) console.error("[lhb]", e); }
     try { renderCharts(D); } catch (e) { if (window.console) console.error("[charts]", e); }
   }
