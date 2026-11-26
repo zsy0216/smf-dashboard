@@ -2037,6 +2037,11 @@
     if (isFirst && !lastOkAt) {
       renderCache();
       firstPaint = loadSnapshot().catch(function () {});
+    } else if (!isFirst) {
+      /* 每轮自动刷新先拉一次最新快照，与手动点「刷新最新数据」的第一步一致：
+         直连慢或失败时页面也能先跟上仓库快照进度，不必干等直连结果；
+         loadSnapshot 内有新鲜度守卫，旧快照不会覆盖屏上更新的实时数据 */
+      loadSnapshot().catch(function () {});
     }
     firstPaint.then(function () { return withDeadline(buildData(), 25000); }).then(applyLive).catch(function (e) {
       if (window.console) console.warn("[SMF] 直连失败，尝试快照", e);
