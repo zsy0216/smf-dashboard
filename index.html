@@ -2110,8 +2110,65 @@
   }
   var currentDataAt = 0;
   var CACHE_KEY = "smf-cache-v1";
+  /* 保存前补全：同日旧缓存里有、而新数据缺失的分时曲线与分段数据带过来，
+     避免某轮直连接口失败产出的残缺数据把完整缓存覆盖掉。只补缺失，绝不覆盖新数据已有的。 */
+  function fillCacheGaps(map) {
+    var changed = false;
+    try {
+      if (!map || !map.today) return false;
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return false;
+      var old = JSON.parse(raw);
+      if (!old || !old.data || !old.data.today) return false;
+      var nt = map.today, ot = old.data.today;
+      var nd = nt.mood && nt.mood.date, od = ot.mood && ot.mood.date;
+      var sameDay;
+      if (nd && od) {
+        sameDay = nd === od;
+      } else {
+        /* 任一缺 mood.date 时退化判定：旧缓存的保存时刻与现在是同一本地自然日 */
+        if (!old.at) return false;
+        var a = new Date(old.at), b = new Date();
+        sameDay = a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+      }
+      if (!sameDay) return false;
+      if ((!nt.flow || !nt.flow.times || !nt.flow.times.length) && ot.flow && ot.flow.times && ot.flow.times.length) {
+        nt.flow = ot.flow; changed = true;
+      }
+      if ((!nt.flowDaily || !nt.flowDaily.length) && ot.flowDaily && ot.flowDaily.length) {
+        nt.flowDaily = ot.flowDaily; changed = true;
+      }
+      function fillSeg(newRows, oldRows) {
+        if (!newRows || !oldRows) return;
+        var byCode = {}, i, r;
+        for (i = 0; i < oldRows.length; i++) { r = oldRows[i]; if (r && r.code && r.seg8) byCode[r.code] = r.seg8; }
+        for (i = 0; i < newRows.length; i++) {
+          r = newRows[i];
+          if (r && !r.seg8 && r.code && byCode[r.code]) { r.seg8 = byCode[r.code]; changed = true; }
+        }
+      }
+      fillSeg(nt.etf, ot.etf);
+      fillSeg(nt.sectors, ot.sectors);
+    } catch (e) { return changed; }
+    return changed;
+  }
   function saveCache(map) {
-    try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: currentDataAt, data: map })); } catch (e) {}
+    var changed = false;
+    try { changed = fillCacheGaps(map); } catch (e) {}
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ at: currentDataAt, data: map }));
+      var back = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (!back || !back.data || !back.data.today) {
+        if (window.console) console.warn("[SMF] 缓存写入后校验未通过，内容可能不完整");
+      }
+    } catch (e) {
+      /* 写入失败（如配额）：只警告，旧缓存保持原样，不向调用方抛错 */
+      if (window.console) console.warn("[SMF] 缓存写入失败，保留旧缓存", e);
+    }
+    if (changed) {
+      /* map 与屏上 DATA 同引用，补全结果同步重渲染一次（refresh 只渲染不保存，无循环） */
+      try { if (window.SMF && window.SMF.refresh) window.SMF.refresh(); } catch (e) {}
+    }
   }
   function renderCache() {
     try {
