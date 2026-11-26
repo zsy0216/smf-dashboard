@@ -767,7 +767,7 @@
       html += "</tr>";
     });
     html += '<tr><td><span style="font-weight:700">合计</span></td>';
-    for (var c2 = 0; c2 < 8; c2++) html += cell(sums[c2] === null ? null : round(sums[c2], 1), true);
+    for (var c2 = 0; c2 < 8; c2++) html += cell(sums[c2] === null ? null : Math.round(sums[c2] * 10) / 10, true);
     html += "</tr></tbody></table></div>";
     wrap.innerHTML = html;
     wrap.style.display = "";
