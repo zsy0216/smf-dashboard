@@ -640,6 +640,20 @@ def build():
             seg = fut.result()
             if seg is not None:
                 etf_seg[secid] = seg
+    # 板块今日分段：口径与下方 sec_rows 的 big 完全一致，按 big 降序取前 5 拉分钟线
+    def _today_big(b):
+        ff = board_ff.get(b["f12"], [])
+        if ff:
+            return ff[-1][1] / YI
+        return (b.get(NET_FIELD["today"]) or 0) / YI
+    sec_top5 = sorted(selections["today"], key=_today_big, reverse=True)[:5]
+    sec_seg = {}
+    with ThreadPoolExecutor(max_workers=4) as ex:
+        futs = {ex.submit(fetch_etf_seg, f"90.{b['f12']}"): b["f12"] for b in sec_top5}
+        for fut, code in list(futs.items()):
+            seg = fut.result()
+            if seg is not None:
+                sec_seg[code] = seg
 
     # ---- 龙虎榜博弈结构分（各周期共用最近交易日） ----
     if lhb:
@@ -733,6 +747,10 @@ def build():
             sec_rows.append({"name": b["f14"], "code": b["f12"], "chg": round(chg, 2),
                              "big": round(big, 1), "margin": round(sup, 1),
                              "vol": round(b.get("f10") or 0, 2)})
+        if pk == "today":
+            for row in sorted(sec_rows, key=lambda r: r["big"], reverse=True)[:5]:
+                if row["code"] in sec_seg:
+                    row["seg8"] = sec_seg[row["code"]]
         breadth = (sum(1 for b in boards if (b.get(nf) or 0) > 0) / len(boards) * 100) if boards else 50.0
         # 四维评分
         d_etf = clamp(50 + etf_ratio * 3)

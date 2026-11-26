@@ -412,6 +412,7 @@
           <tbody id="sectorBody"></tbody>
         </table>
       </div>
+      <div id="sectorSegWrap" style="display:none"></div>
       <div style="margin-top:16px;">
         <div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">板块多周期热力 · 大单净额（亿）<span class="info" tabindex="0" data-tip="同一批板块在今日/3日/5日/20日四个周期的净额。一整行都红＝多周期共振、真趋势；只有今日一格红＝一日游。">i</span></div>
         <div style="font-size:11px;color:var(--dim);margin-bottom:8px;">同一板块在四个周期的持续性：整行红＝资金持续流入的主线；只有「今日」红＝一日游。-- 表示该周期未进前 5/后 3</div>
@@ -761,6 +762,47 @@
       html += '<tr><td><span style="font-weight:600">' + esc(e.name) + '</span></td>';
       for (var c = 0; c < 8; c++) {
         var v = e.seg8 ? e.seg8[c] : null;
+        if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
+        html += cell(v, false);
+      }
+      html += "</tr>";
+    });
+    html += '<tr><td><span style="font-weight:700">合计</span></td>';
+    for (var c2 = 0; c2 < 8; c2++) html += cell(sums[c2] === null ? null : Math.round(sums[c2] * 10) / 10, true);
+    html += "</tr></tbody></table></div>";
+    wrap.innerHTML = html;
+    wrap.style.display = "";
+  }
+
+  /* 板块半小时分段矩阵（仅今日周期且带 seg8 时显示，挂在板块表格下方；只渲染带 seg8 的前 5 行） */
+  function renderSectorSeg(D) {
+    var wrap = $("sectorSegWrap");
+    if (!wrap) return;
+    var rows = [];
+    for (var h = 0; h < D.sectors.length; h++) if (D.sectors[h].seg8) rows.push(D.sectors[h]);
+    if (!rows.length) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
+    var heads = ["9:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30 尾盘"];
+    var maxAbs = 0;
+    rows.forEach(function (s) {
+      (s.seg8 || []).forEach(function (v) { if (v !== null && v !== undefined && Math.abs(v) > maxAbs) maxAbs = Math.abs(v); });
+    });
+    if (!maxAbs) maxAbs = 1;
+    function cell(v, bold) {
+      if (v === null || v === undefined) return '<td class="num" style="color:#5b6b82">—</td>';
+      var a = Math.min(0.55, Math.abs(v) / maxAbs * 0.55 + 0.06);
+      var bg = v >= 0 ? "rgba(239,68,68," + a + ")" : "rgba(16,185,129," + a + ")";
+      return '<td class="num" style="background:' + bg + (bold ? ";font-weight:700" : "") + '">' + signNum(v, 1) + '</td>';
+    }
+    var html = '<div style="font-size:13px;font-weight:700;margin:14px 0 8px;">分时段主力净流入（半小时）'
+      + '<span class="info" tabindex="0" data-tip="今日主力净流入前 5 名板块，每格是该半小时内的主力净流入（口径与板块表一致）：横向看哪个板块在哪个时段被买，纵向比同一时段哪家最强；最后一列 14:30–15:00 即尾盘">i</span></div>'
+      + '<div class="tbl-wrap"><table class="tb" style="min-width:640px;"><thead><tr><th>板块</th>'
+      + heads.map(function (hd, ci) { return ci === 7 ? '<th style="font-weight:800">' + hd + '</th>' : '<th>' + hd + '</th>'; }).join("")
+      + '</tr></thead><tbody>';
+    var sums = [null, null, null, null, null, null, null, null];
+    rows.forEach(function (s) {
+      html += '<tr><td><span style="font-weight:600">' + esc(s.name) + '</span></td>';
+      for (var c = 0; c < 8; c++) {
+        var v = s.seg8 ? s.seg8[c] : null;
         if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
         html += cell(v, false);
       }
@@ -1125,10 +1167,22 @@
         }
       });
     }
+    /* 轴范围预留边距：symbolSize 放大后极值点的大气泡贴边会被切，先算范围再各向外扩 */
+    var xMin = 0, xMax = 0, yMin = 0, yMax = 0;
+    for (var j = 0; j < data.length; j++) {
+      if (data[j].value[0] < xMin) xMin = data[j].value[0];
+      if (data[j].value[0] > xMax) xMax = data[j].value[0];
+      if (data[j].value[1] < yMin) yMin = data[j].value[1];
+      if (data[j].value[1] > yMax) yMax = data[j].value[1];
+    }
+    var xPad = Math.max(0.5, (xMax - xMin) * 0.13);
+    var yPad = Math.max(2, (yMax - yMin) * 0.15);
+    /* 大泡先画、小泡压在上层，避免相近板块的大气泡互相盖住小气泡 */
+    data.sort(function (a, b) { return b.value[2] - a.value[2]; });
     return {
       backgroundColor: "transparent",
       animationDuration: 700,
-      grid: { left: 6, right: 16, top: 30, bottom: 26, containLabel: true },
+      grid: { left: 6, right: 30, top: 38, bottom: 26, containLabel: true },
       tooltip: Object.assign(baseTooltip(), {
         trigger: "item",
         formatter: function (p) {
@@ -1145,6 +1199,8 @@
       }),
       xAxis: {
         type: "value",
+        min: xMin - xPad,
+        max: xMax + xPad,
         name: "涨跌幅 %",
         nameLocation: "middle",
         nameGap: 22,
@@ -1156,6 +1212,8 @@
       },
       yAxis: {
         type: "value",
+        min: yMin - yPad,
+        max: yMax + yPad,
         name: "大单净流入（亿元）",
         nameLocation: "end",
         nameGap: 12,
@@ -1167,10 +1225,12 @@
       },
       series: [{
         type: "scatter",
+        clip: true,
         data: data,
         symbolSize: function (v) { return Math.min(48, 9 + Math.sqrt(v[2]) * 7); },
         label: {
           show: true, position: "top", distance: 6,
+          labelLayout: { hideOverlap: true },
           formatter: function (p) { return p.name; },
           color: "#c7d4e6", fontSize: 11
         },
@@ -1317,6 +1377,7 @@
     try { renderEtfTable(D); } catch (e) { if (window.console) console.error("[etf]", e); }
     try { renderEtfSeg(D); } catch (e) { if (window.console) console.error("[etfseg]", e); }
     try { renderSectorTable(D); } catch (e) { if (window.console) console.error("[sector]", e); }
+    try { renderSectorSeg(D); } catch (e) { if (window.console) console.error("[sectorseg]", e); }
     try { renderLhbSummary(D); } catch (e) { if (window.console) console.error("[lhb]", e); }
     try { renderCharts(D); } catch (e) { if (window.console) console.error("[charts]", e); }
   }
@@ -1674,6 +1735,14 @@
       return seg8FromKlines(rows);
     }).catch(function () { return null; });
   }
+  function fetchSectorSeg(code) {
+    /* 与 fetchEtfSeg 同构：板块分钟线 secid 为 90.<代码>，缓存键独立避免冲突 */
+    return cached("secseg|90." + code, 60000, function () {
+      return fetchFlowKline("90." + code);
+    }, function (v) { return v && v.length > 0; }).then(function (rows) {
+      return seg8FromKlines(rows);
+    }).catch(function () { return null; });
+  }
   function fetchFlow() {
     return Promise.all([
       safe(fetchFlowKline("1.000001"), []),
@@ -1849,6 +1918,10 @@
       ETF_WATCH.forEach(function (s) {
         jobs.push(fetchEtfSeg(s).then(function (v) { etfSeg[s] = v; }));
       });
+      var secSeg = {};
+      selections.today.slice(0, 5).forEach(function (b) {
+        jobs.push(fetchSectorSeg(b.f12).then(function (v) { secSeg[b.f12] = v; }));
+      });
       return Promise.all([Promise.all(jobs), moodP, flowP, stocksP]).then(function (r2) {
         var mood = r2[1], flowRes = r2[2], stocks = r2[3];
         var lhbDate = lhb ? lhb.date : "", lhbList = lhb ? lhb.list : [];
@@ -1913,6 +1986,11 @@
             else chg = b.f3 || 0;
             return { name: b.f14, code: b.f12, chg: round(chg, 2), big: round(big, 1), margin: round(sup, 1), vol: round(b.f10 || 0, 2) };
           });
+          if (pk === "today") {
+            secRows.slice().sort(function (a, b) { return b.big - a.big; }).slice(0, 5).forEach(function (r) {
+              if (secSeg[r.code]) r.seg8 = secSeg[r.code];
+            });
+          }
           var breadth = boards.filter(function (b) { return (b[nf] || 0) > 0; }).length / boards.length * 100;
           /* 四维评分 */
           var dEtf = clamp(50 + etfRatio * 3);
