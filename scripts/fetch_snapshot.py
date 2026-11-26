@@ -342,16 +342,20 @@ def fetch_flow():
     return flow, flow_daily
 
 
-def seg_from_klines(rows):
-    """分钟累计主力净额 → [上午, 下午, 尾盘] 三段（亿元，1 位小数）。
+def seg8_from_klines(rows):
+    """分钟累计主力净额 → 8 个半小时段主力净流入（亿元，1 位小数）。
 
-    上午=cum(≤11:30)，下午=cum(≤14:29)−cum(≤11:30)，尾盘=cum(最后)−cum(≤14:29)；
-    时段尚无分钟线落入时该段为 None（如盘中下午/尾盘未开始）。
+    边界依次 10:00/10:30/11:00/11:30/13:30/14:00/14:30/最后，起点累计为 0，
+    每段 = cum(本段边界) − cum(上段边界)；某段尚无分钟线进入
+    （最后一行时间 ≤ 该段起点）时该段为 None，进行中的段算到最后一行。
+    8 段之和 = 当日累计终值。
     """
     if not rows:
         return None
-    cum1130 = cum1429 = last = None
-    has_am = has_pm = has_tail = False
+    bounds = ["10:00", "10:30", "11:00", "11:30", "13:30", "14:00", "14:30"]
+    starts = ["09:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30"]
+    cum_b = [None] * 7
+    last = last_t = None
     for row in rows:
         p = row.split(",")
         t = p[0][11:16]
@@ -359,22 +363,22 @@ def seg_from_klines(rows):
             v = float(p[1])
         except (ValueError, IndexError):
             continue
-        last = v
-        if t <= "11:30":
-            cum1130 = v
-            has_am = True
-        if t <= "14:29":
-            cum1429 = v
-        if "11:30" < t <= "14:29":
-            has_pm = True
-        if t > "14:29":
-            has_tail = True
+        last, last_t = v, t
+        for b, bt in enumerate(bounds):
+            if t <= bt:
+                cum_b[b] = v
     if last is None:
         return None
-    am = round(cum1130 / YI, 1) if has_am else None
-    pm = round((cum1429 - (cum1130 or 0.0)) / YI, 1) if has_pm else None
-    tail = round((last - cum1429) / YI, 1) if has_tail else None
-    return [am, pm, tail]
+    # prev[s] = 第 s 段起点处的累计值（午休不推进：13:00 段起点取 11:30 累计）
+    prev = [0.0, cum_b[0], cum_b[1], cum_b[2], cum_b[3], cum_b[4], cum_b[5], cum_b[6]]
+    out = []
+    for s in range(8):
+        if last_t <= starts[s]:
+            out.append(None)
+            continue
+        end_v = last if (s == 7 or last_t <= bounds[s]) else cum_b[s]
+        out.append(round((end_v - (prev[s] or 0.0)) / YI, 1))
+    return out
 
 
 def fetch_etf_seg(secid):
@@ -387,7 +391,7 @@ def fetch_etf_seg(secid):
         rows = get_json_hosts(url, FLOW_HOSTS)["data"]["klines"]
     except Exception:
         rows = []
-    return seg_from_klines(rows)
+    return seg8_from_klines(rows)
 
 
 def fetch_stocks():
@@ -693,7 +697,7 @@ def build():
                 "premium": round(premium, 2), "aum": round((e.get("f20") or 0) / YI),
             }
             if pk == "today" and secid in etf_seg:
-                etf_row["seg"] = etf_seg[secid]
+                etf_row["seg8"] = etf_seg[secid]
             etf_rows.append(etf_row)
         etf_turn = sum((e.get("f6") or 0) for e in etfs) / YI
         etf_ratio = (etf_net_sum / etf_turn * 100) if etf_turn else 0.0

@@ -370,6 +370,7 @@
               <tbody id="etfBody"></tbody>
             </table>
           </div>
+          <div id="etfSegWrap" style="display:none"></div>
           <div class="sub-note" style="margin-top:10px;line-height:1.7;">
             <span class="info" tabindex="0" data-tip="场内价格比净值贵多少。显著为正说明在追高买入；持续净申购且折溢价平稳，才更接近配置型资金。">i</span>折溢价率 &gt; +0.3% 说明场内价格显著高于净值，多为追高买入；持续净申购且折溢价平稳，才更接近配置型资金。
           </div>
@@ -713,13 +714,6 @@
   function renderEtfTable(D) {
     var body = $("etfBody");
     if (!body) return;
-    var hasSeg = false;
-    for (var h = 0; h < D.etf.length; h++) if (D.etf[h].seg) { hasSeg = true; break; }
-    var head = document.querySelector(".tb-etf thead tr");
-    if (head) {
-      head.innerHTML = "<th>ETF 名称</th><th>净流入</th><th>主力净占比</th><th>折溢价</th><th>规模</th>"
-        + (hasSeg ? "<th>上午</th><th>下午</th><th>尾盘<span class=\"info\" tabindex=\"0\" data-tip=\"14:30–15:00 的主力净流入，最能看出尾盘是否有资金进场扫货\">i</span></th>" : "");
-    }
     var html = "";
     for (var i = 0; i < D.etf.length; i++) {
       var e = D.etf[i];
@@ -728,22 +722,55 @@
         + '<td class="num" style="font-weight:700;' + toneStyle(e.net) + '">' + signNum(e.net, 1) + '</td>'
         + '<td class="num" style="' + toneStyle(e.share) + '">' + signNum(e.share, 2) + '</td>'
         + '<td class="num" style="' + toneStyle(e.premium) + '">' + signNum(e.premium, 2) + '%</td>'
-        + '<td class="num" style="color:#b9c7db">' + e.aum.toFixed(0) + '</td>';
-      if (hasSeg) {
-        for (var s2 = 0; s2 < 3; s2++) {
-          var v = e.seg ? e.seg[s2] : null;
-          html += (v === null || v === undefined)
-            ? '<td class="num"><span style="color:#5b6b82">—</span></td>'
-            : '<td class="num" style="' + toneStyle(v) + '">' + signNum(v, 1) + '</td>';
-        }
-      }
-      html += "</tr>";
+        + '<td class="num" style="color:#b9c7db">' + e.aum.toFixed(0) + '</td>'
+        + "</tr>";
     }
     body.innerHTML = html;
 
     var sum = 0;
     for (var k = 0; k < D.etf.length; k++) sum += D.etf[k].net;
     setHtml("etfHdRight", "合计 <b style='color:" + (sum >= 0 ? COLORS.up : COLORS.down) + "'>" + signNum(sum, 1) + " 亿元</b>　|　" + esc(D.stamp));
+  }
+
+  /* 宽基 ETF 半小时分段矩阵（仅今日周期且带 seg8 时显示，挂在 ETF 表格下方） */
+  function renderEtfSeg(D) {
+    var wrap = $("etfSegWrap");
+    if (!wrap) return;
+    var has = false;
+    for (var h = 0; h < D.etf.length; h++) if (D.etf[h].seg8) { has = true; break; }
+    if (!has) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
+    var heads = ["9:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30 尾盘"];
+    var maxAbs = 0;
+    D.etf.forEach(function (e) {
+      (e.seg8 || []).forEach(function (v) { if (v !== null && v !== undefined && Math.abs(v) > maxAbs) maxAbs = Math.abs(v); });
+    });
+    if (!maxAbs) maxAbs = 1;
+    function cell(v, bold) {
+      if (v === null || v === undefined) return '<td class="num" style="color:#5b6b82">—</td>';
+      var a = Math.min(0.55, Math.abs(v) / maxAbs * 0.55 + 0.06);
+      var bg = v >= 0 ? "rgba(239,68,68," + a + ")" : "rgba(16,185,129," + a + ")";
+      return '<td class="num" style="background:' + bg + (bold ? ";font-weight:700" : "") + '">' + signNum(v, 1) + '</td>';
+    }
+    var html = '<div style="font-size:13px;font-weight:700;margin:14px 0 8px;">分时段主力净流入（半小时）'
+      + '<span class="info" tabindex="0" data-tip="每格是该半小时内的主力净流入：横向看哪只 ETF 在哪个时段被买，纵向比同一时段哪只最强；最后一列 14:30–15:00 即尾盘">i</span></div>'
+      + '<div class="tbl-wrap"><table class="tb" style="min-width:640px;"><thead><tr><th>ETF</th>'
+      + heads.map(function (hd, ci) { return ci === 7 ? '<th style="font-weight:800">' + hd + '</th>' : '<th>' + hd + '</th>'; }).join("")
+      + '</tr></thead><tbody>';
+    var sums = [null, null, null, null, null, null, null, null];
+    D.etf.forEach(function (e) {
+      html += '<tr><td><span style="font-weight:600">' + esc(e.name) + '</span></td>';
+      for (var c = 0; c < 8; c++) {
+        var v = e.seg8 ? e.seg8[c] : null;
+        if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
+        html += cell(v, false);
+      }
+      html += "</tr>";
+    });
+    html += '<tr><td><span style="font-weight:700">合计</span></td>';
+    for (var c2 = 0; c2 < 8; c2++) html += cell(sums[c2] === null ? null : round(sums[c2], 1), true);
+    html += "</tr></tbody></table></div>";
+    wrap.innerHTML = html;
+    wrap.style.display = "";
   }
 
   function renderSectorTable(D) {
@@ -1288,6 +1315,7 @@
     try { renderMatrix(); } catch (e) { if (window.console) console.error("[matrix]", e); }
     try { renderStocks(); } catch (e) { if (window.console) console.error("[stocks]", e); }
     try { renderEtfTable(D); } catch (e) { if (window.console) console.error("[etf]", e); }
+    try { renderEtfSeg(D); } catch (e) { if (window.console) console.error("[etfseg]", e); }
     try { renderSectorTable(D); } catch (e) { if (window.console) console.error("[sector]", e); }
     try { renderLhbSummary(D); } catch (e) { if (window.console) console.error("[lhb]", e); }
     try { renderCharts(D); } catch (e) { if (window.console) console.error("[charts]", e); }
@@ -1610,36 +1638,40 @@
     }
     return attempt();
   }
-  /* 宽基 ETF 分时段：分钟累计主力净额切成 上午/下午/尾盘 三段（亿元）。
-     累计曲线午休不推进：上午=cum(≤11:30)，下午=cum(≤14:29)−cum(≤11:30)，
-     尾盘=cum(最后)−cum(≤14:29)；时段尚无分钟线落入时该段为 null。 */
-  function segFromKlines(rows) {
+  /* 宽基 ETF 半小时分段：分钟累计主力净额按 8 个半小时段作差（亿元）。
+     边界依次 10:00/10:30/11:00/11:30/13:30/14:00/14:30/最后，起点累计为 0；
+     某段尚无分钟线进入（最后一行时间 ≤ 该段起点）时该段为 null，
+     进行中的段算到最后一行为止。8 段之和 = 当日累计终值。 */
+  function seg8FromKlines(rows) {
     if (!rows || !rows.length) return null;
-    var cum1130 = null, cum1429 = null, last = null;
-    var hasAm = false, hasPm = false, hasTail = false;
+    var B = ["10:00", "10:30", "11:00", "11:30", "13:30", "14:00", "14:30"];
+    var S = ["09:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30"];
+    var cumB = [null, null, null, null, null, null, null];
+    var last = null, lastT = null;
     for (var i = 0; i < rows.length; i++) {
       var p = rows[i].split(",");
       var t = p[0].slice(11, 16), v = parseFloat(p[1]);
       if (!t || isNaN(v)) continue;
-      last = v;
-      if (t <= "11:30") { cum1130 = v; hasAm = true; }
-      if (t <= "14:29") cum1429 = v;
-      if (t > "11:30" && t <= "14:29") hasPm = true;
-      if (t > "14:29") hasTail = true;
+      last = v; lastT = t;
+      for (var b = 0; b < B.length; b++) if (t <= B[b]) cumB[b] = v;
     }
     if (last === null) return null;
-    return [
-      hasAm ? round(cum1130 / YI, 1) : null,
-      hasPm ? round((cum1429 - (cum1130 || 0)) / YI, 1) : null,
-      hasTail ? round((last - cum1429) / YI, 1) : null
-    ];
+    /* prev[s] = 第 s 段起点处的累计值（午休不推进：13:00 段起点取 11:30 累计） */
+    var prev = [0, cumB[0], cumB[1], cumB[2], cumB[3], cumB[4], cumB[5], cumB[6]];
+    var out = [];
+    for (var s2 = 0; s2 < 8; s2++) {
+      if (lastT <= S[s2]) { out.push(null); continue; }
+      var endV = (s2 === 7 || lastT <= B[s2]) ? last : cumB[s2];
+      out.push(round((endV - (prev[s2] || 0)) / YI, 1));
+    }
+    return out;
   }
   function fetchEtfSeg(secid) {
     /* 60 秒内复用缓存，避免每轮刷新对 8 只 ETF 全量重拉分钟线触发限流 */
     return cached("etfseg|" + secid, 60000, function () {
       return fetchFlowKline(secid);
     }, function (v) { return v && v.length > 0; }).then(function (rows) {
-      return segFromKlines(rows);
+      return seg8FromKlines(rows);
     }).catch(function () { return null; });
   }
   function fetchFlow() {
@@ -1857,7 +1889,7 @@
               premium: e.f441 ? round((e.f2 / e.f441 - 1) * 100, 2) : 0,
               aum: round((e.f20 || 0) / YI)
             };
-            if (pk === "today" && etfSeg[secid]) etfRow.seg = etfSeg[secid];
+            if (pk === "today" && etfSeg[secid]) etfRow.seg8 = etfSeg[secid];
             etfRows.push(etfRow);
           });
           var etfTurn = etfs.reduce(function (s, e) { return s + (e.f6 || 0); }, 0) / YI;
