@@ -131,6 +131,17 @@
   }
   .kpi-label{ font-size:12px; color:var(--muted); display:flex; align-items:center; gap:6px; }
   .kpi-note{ font-size:10px; color:var(--dim); border:1px solid var(--line); padding:1px 6px; border-radius:5px; }
+  /* ---------- 指标说明角标 ---------- */
+  .info{ display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; margin-left:5px; border-radius:50%; border:1px solid var(--dim); color:var(--dim); font-size:10px; font-style:normal; font-weight:400; cursor:help; position:relative; vertical-align:1px; flex:none; }
+  .info::after{ content:attr(data-tip); position:absolute; left:50%; bottom:calc(100% + 8px); transform:translateX(-50%) translateY(3px); width:max-content; max-width:250px; white-space:normal; text-align:left; background:#0d1522; color:#dbe6f5; border:1px solid rgba(139,155,180,.45); border-radius:8px; padding:8px 10px; font-size:11.5px; line-height:1.65; opacity:0; pointer-events:none; transition:opacity .15s ease, transform .15s ease; z-index:80; box-shadow:0 10px 28px rgba(0,0,0,.5); }
+  .info:hover::after, .info:focus::after{ opacity:1; transform:translateX(-50%) translateY(0); }
+  .info.d::after{ bottom:auto; top:calc(100% + 8px); transform:translateX(-50%) translateY(-3px); }
+  .info.d:hover::after, .info.d:focus::after{ transform:translateX(-50%) translateY(0); }
+  .info.l::after{ left:-6px; transform:translateY(3px); }
+  .info.l:hover::after, .info.l:focus::after{ transform:translateY(0); }
+  .info.d.l::after{ transform:translateY(-3px); }
+  .info.d.l:hover::after, .info.d.l:focus::after{ transform:translateY(0); }
+  @media (max-width:620px){ .info::after{ max-width:200px; } }
   .kpi-val{ display:flex; align-items:baseline; gap:6px; margin-top:8px; }
   .kpi-val .v{ font-size:30px; font-weight:800; letter-spacing:-1.2px; line-height:1.05; }
   .kpi-val .u{ font-size:12.5px; color:var(--muted); font-weight:600; }
@@ -172,9 +183,9 @@
   /* ---------- 标签 ---------- */
   .tag{ display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:6px; white-space:nowrap; border:1px solid; }
   .tag-acc{ color:#fca5a5; background:rgba(239,68,68,.13); border-color:rgba(239,68,68,.34); }
-  .tag-res{ color:#fda4af; background:rgba(244,63,94,.15); border-color:rgba(244,63,94,.36); }
+  .tag-res{ color:#d8b4fe; background:rgba(168,85,247,.14); border-color:rgba(168,85,247,.34); }
   .tag-dist{ color:#fcd34d; background:rgba(245,158,11,.14); border-color:rgba(245,158,11,.36); }
-  .tag-div{ color:#d8b4fe; background:rgba(168,85,247,.14); border-color:rgba(168,85,247,.34); }
+  .tag-div{ color:#7dd3fc; background:rgba(56,189,248,.15); border-color:rgba(56,189,248,.36); }
   .tag-out{ color:#6ee7b7; background:rgba(16,185,129,.13); border-color:rgba(16,185,129,.34); }
   .tag-neu{ color:#cbd5e1; background:rgba(100,116,139,.14); border-color:rgba(100,116,139,.34); }
   .sub-note{ font-size:10px; color:var(--dim); }
@@ -249,6 +260,7 @@
       <span class="badge-live"><span class="dot"></span>多维监测中</span>
       <span class="badge-mock" id="dataStatus">正在连接真实数据…</span>
       <span class="stamp">渲染时间 <b id="renderTime">--</b></span>
+      <button id="refreshBtn" type="button" style="padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:#0c1320;color:#dbe6f5;font-size:12px;cursor:pointer;">刷新最新数据</button>
       <div class="periods" role="group" aria-label="时间周期切换">
         <button class="pbtn on" id="pv-today" data-period="today" type="button">今日实时</button>
         <button class="pbtn" id="pv-d3" data-period="d3" type="button">近3日</button>
@@ -264,25 +276,25 @@
   <!-- ======================= KPI ======================= -->
   <section class="grid-kpi fade-in" aria-label="核心指标">
     <div class="panel kpi">
-      <div class="kpi-label">全市场两市成交额<span class="kpi-note" id="kpi-turnover-scope">单日</span></div>
+      <div class="kpi-label">全市场两市成交额<span class="kpi-note" id="kpi-turnover-scope">单日</span><span class="info d l" tabindex="0" data-tip="全市场今天成交了多少钱，看量能。和昨日同时段比：放量上涨才健康，缩量上涨要留个心眼。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-turnover">--</span><span class="u" id="kpi-turnover-unit">万亿</span></div>
       <div class="kpi-sub"><span class="num" id="kpi-turnover-chg">--</span><span id="kpi-turnover-hint">较前一交易日</span></div>
       <div class="spark" id="spark-turnover"></div>
     </div>
     <div class="panel kpi">
-      <div class="kpi-label">头部宽基ETF主力净流入<span class="kpi-note">机构/长线风向标</span></div>
+      <div class="kpi-label">头部宽基ETF主力净流入<span class="kpi-note">机构/长线风向标</span><span class="info d" tabindex="0" data-tip="头部宽基ETF的主力净流入。ETF是机构和长线资金（慢钱）的主要通道，它的方向代表稳健资金的态度。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-etf">--</span><span class="u">亿元</span></div>
       <div class="kpi-sub"><span class="num" id="kpi-etf-chg">--</span><span>主力净额占成交额比</span></div>
       <div class="spark" id="spark-etf"></div>
     </div>
     <div class="panel kpi">
-      <div class="kpi-label">全市场融资净买入<span class="kpi-note">杠杆活跃度</span></div>
+      <div class="kpi-label">全市场融资净买入<span class="kpi-note">杠杆活跃度</span><span class="info d" tabindex="0" data-tip="借钱买股的杠杆资金今天净买入多少。放大＝杠杆资金在进攻；若指数不涨，就是杠杆滞涨、偏风险。数据T+1披露，滞后一天。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-margin">--</span><span class="u">亿元</span></div>
       <div class="kpi-sub"><span class="num" id="kpi-margin-chg">--</span><span>融资余额日变动</span></div>
       <div class="spark" id="spark-margin"></div>
     </div>
     <div class="panel kpi">
-      <div class="kpi-label">主力资金真实度情绪评分<span class="kpi-note">0-100</span></div>
+      <div class="kpi-label">主力资金真实度情绪评分<span class="kpi-note">0-100</span><span class="info d" tabindex="0" data-tip="四维加权总分（0~100）：ETF慢钱30%＋杠杆情绪20%＋板块轮动25%＋博弈结构25%。50上下多空均衡，60+偏多，40以下偏空。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-score">--</span><span class="u">/100</span></div>
       <div class="kpi-sub"><span id="kpi-score-level" style="font-weight:700">--</span><span id="kpi-score-hint">四维加权</span></div>
       <div class="spark" id="spark-score"></div>
@@ -304,7 +316,7 @@
   <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
       <div class="panel-no">01</div>
-      <div style="font-size:13px;font-weight:700;">市场情绪温度 · 涨跌停与连板生态</div>
+      <div style="font-size:13px;font-weight:700;">市场情绪温度 · 涨跌停与连板生态<span class="info" tabindex="0" data-tip="短线氛围的综合温度，合成公式就写在温度条下面。越高越热，但超过80往往是情绪尾声、接力风险大；低于20是冰点区。">i</span></div>
       <div style="font-size:11px;color:var(--dim);">涨停 / 跌停 / 炸板池 · 当日数据（盘中实时，取最近交易日）</div>
       <div class="right" id="moodRight" style="margin-left:auto;font-size:11px;color:var(--dim);">--</div>
     </div>
@@ -315,7 +327,7 @@
   <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
       <div class="panel-no">02</div>
-      <div style="font-size:13px;font-weight:700;">大盘主力资金流 · 两市累计净额曲线</div>
+      <div style="font-size:13px;font-weight:700;">大盘主力资金流 · 两市累计净额曲线<span class="info" tabindex="0" data-tip="主力净额的当日累计曲线：全天往上爬＝主力持续买入；高位突然掉头＝在出货。主力＝超大单（≥100万）＋大单（20~100万）的买卖差额。非交易时段切换为近10日柱状：单日会骗人，连续3~5天同向才算趋势。">i</span></div>
       <div style="font-size:11px;color:var(--dim);">沪+深指数分时资金流合并 · 累计值（亿元）· 当日数据，不随周期切换</div>
       <div class="right" id="flowRight" style="margin-left:auto;font-size:11px;color:var(--dim);">--</div>
     </div>
@@ -328,40 +340,28 @@
     <div class="panel-hd">
       <div class="panel-no">03</div>
       <div>
-        <div class="panel-t1">机构与长线风向标 · 核心宽基 ETF 资金净流入</div>
+        <div class="panel-t1">机构与长线风向标 · 核心宽基 ETF 资金净流入<span class="info" tabindex="0" data-tip="宽基ETF的主力净额是慢钱风向标。另外看份额：份额增＝有人申购进场，份额减＝赎回离场；份额方向和主力净额方向可能不一致。">i</span></div>
         <div class="panel-t2">净流入＝二级市场主力净额（超大单＋大单），盘中实时；金额单位：亿元 / 净占比单位：%</div>
       </div>
       <div class="right" id="etfHdRight">--</div>
     </div>
     <div class="panel-bd">
-      <div class="grid-2">
-        <div>
-          <div class="chart" id="chartEtf"></div>
-          <div class="legend">
-            <span><i style="background:#ef4444"></i>主力净流入</span>
-            <span><i style="background:#10b981"></i>主力净流出</span>
-            <span style="color:var(--dim)">悬停柱体可查看主力净占比与折溢价率</span>
-          </div>
+      <div style="position:relative;">
+        <div class="chart" id="chartEtf"></div>
+        <div class="legend" style="position:absolute;top:4px;right:10px;z-index:5;margin-top:0;">
+          <span><i style="background:#ef4444"></i>主力净流入</span>
+          <span><i style="background:#10b981"></i>主力净流出</span>
+          <span style="color:var(--dim)">悬停柱体可查看主力净占比与折溢价率</span>
         </div>
-        <div>
-          <div class="tbl-wrap">
-            <table class="tb tb-etf">
-              <thead>
-                <tr>
-                  <th>ETF 名称</th>
-                  <th>净流入</th>
-                  <th>主力净占比</th>
-                  <th>折溢价</th>
-                  <th>规模</th>
-                </tr>
-              </thead>
-              <tbody id="etfBody"></tbody>
-            </table>
-          </div>
-          <div class="sub-note" style="margin-top:10px;line-height:1.7;">
-            折溢价率 &gt; +0.3% 说明场内价格显著高于净值，多为追高买入；持续净申购且折溢价平稳，才更接近配置型资金。
-          </div>
-        </div>
+      </div>
+      <div class="tbl-wrap" style="margin-top:10px;">
+        <table class="tb tb-etf" id="etfTable" style="min-width:640px;">
+          <thead id="etfHead"></thead>
+          <tbody id="etfBody"></tbody>
+        </table>
+      </div>
+      <div class="sub-note" style="margin-top:10px;line-height:1.7;">
+        <span class="info" tabindex="0" data-tip="场内价格比净值贵多少。显著为正说明在追高买入；持续净申购且折溢价平稳，才更接近配置型资金。">i</span>折溢价率 &gt; +0.3% 说明场内价格显著高于净值，多为追高买入；持续净申购且折溢价平稳，才更接近配置型资金。
       </div>
     </div>
   </section>
@@ -371,36 +371,30 @@
     <div class="panel-hd">
       <div class="panel-no">04</div>
       <div>
-        <div class="panel-t1">板块资金轮动热力与量价背离监测</div>
+        <div class="panel-t1">板块资金轮动热力与量价背离监测<span class="info" tabindex="0" data-tip="按资金排的板块榜：净额（钱）和涨跌幅（价）一起看——钱进价涨＝真强；价涨钱出＝拉高出货。点表格里的板块行可钻取它的成分股资金。">i</span></div>
         <div class="panel-t2">横轴涨跌幅 · 纵轴大单净流入（亿元）· 气泡大小＝超大单净额绝对值 · 点击表格中的板块行可钻取成分股资金流</div>
       </div>
       <div class="right" id="sectorHdRight">--</div>
     </div>
     <div class="panel-bd">
-      <div class="chart chart-sm" id="chartSector"></div>
-      <div class="legend">
-        <span><i style="background:#ef4444"></i>主力吸筹</span>
-        <span><i style="background:#f43f5e"></i>主升共振</span>
-        <span><i style="background:#f59e0b"></i>高位派发预警</span>
-        <span><i style="background:#a855f7"></i>拆单暗吸 / 量价背离</span>
-        <span><i style="background:#10b981"></i>资金撤离</span>
+      <div style="position:relative;">
+        <div class="chart chart-sm" id="chartSector"></div>
+        <div class="legend" style="position:absolute;top:4px;right:10px;z-index:5;margin-top:0;">
+          <span><i style="background:#ef4444"></i>主力吸筹</span>
+          <span><i style="background:#a855f7"></i>主升共振</span>
+          <span><i style="background:#f59e0b"></i>高位派发预警</span>
+          <span><i style="background:#38bdf8"></i>拆单暗吸 / 量价背离</span>
+          <span><i style="background:#10b981"></i>资金撤离</span>
+        </div>
       </div>
       <div class="tbl-wrap" style="margin-top:14px;">
-        <table class="tb" style="min-width:640px;">
-          <thead>
-            <tr>
-              <th>板块名称</th>
-              <th>涨跌幅</th>
-              <th>大单净流入(亿)</th>
-              <th>超大单净额(亿)</th>
-              <th style="text-align:center">资金信号</th>
-            </tr>
-          </thead>
+        <table class="tb" id="sectorTable" style="min-width:640px;">
+          <thead id="sectorHead"></thead>
           <tbody id="sectorBody"></tbody>
         </table>
       </div>
       <div style="margin-top:16px;">
-        <div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">板块多周期热力 · 大单净额（亿）</div>
+        <div style="font-size:12.5px;font-weight:700;margin-bottom:4px;">板块多周期热力 · 大单净额（亿）<span class="info" tabindex="0" data-tip="同一批板块在今日/3日/5日/20日四个周期的净额。一整行都红＝多周期共振、真趋势；只有今日一格红＝一日游。">i</span></div>
         <div style="font-size:11px;color:var(--dim);margin-bottom:8px;">同一板块在四个周期的持续性：整行红＝资金持续流入的主线；只有「今日」红＝一日游。-- 表示该周期未进前 5/后 3</div>
         <div id="matrixBody" style="font-size:12.5px;color:var(--muted);">正在加载真实数据…</div>
       </div>
@@ -411,7 +405,7 @@
   <section class="panel fade-in" style="margin-top:14px;padding:14px 16px 16px;">
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
       <div class="panel-no">05</div>
-      <div style="font-size:13px;font-weight:700;">个股资金榜 · 全市场主力净额 Top10</div>
+      <div style="font-size:13px;font-weight:700;">个股资金榜 · 全市场主力净额 Top10<span class="info" tabindex="0" data-tip="主力净流入/流出最大的个股。流入榜看龙头是谁，流出榜看谁在被抛。大票吸金多是体量原因，不等于要涨停。">i</span></div>
       <div style="font-size:11px;color:var(--dim);">当日数据 · 钱最集中的票与被抛弃的票</div>
     </div>
     <div class="grid-2" style="grid-template-columns:1fr 1fr;">
@@ -425,7 +419,7 @@
     <div class="panel-hd">
       <div class="panel-no">06</div>
       <div>
-        <div class="panel-t1">短线博弈结构 · 龙虎榜机构与游资席位买卖对比</div>
+        <div class="panel-t1">短线博弈结构 · 龙虎榜机构与游资席位买卖对比<span class="info" tabindex="0" data-tip="重点看机构专用席位：机构净买入的票可信度更高；游资席位是短线情绪，来得快去得也快。看结构，不看单个个股。">i</span></div>
         <div class="panel-t2">右侧红柱＝买入额 · 左侧绿柱＝卖出额 · 标签为净额（亿元）</div>
       </div>
       <div class="right" id="lhbHdRight">--</div>
@@ -452,7 +446,7 @@
     </summary>
     <div class="info-bd">
 
-      <h4>一、接口映射表（已接入真实数据：浏览器直连东方财富公开接口，失败时回退仓库内 data.json 快照）</h4>
+      <h4>一、接口映射表（已接入真实数据：打开先展示仓库内 data.json 快照，再直连东方财富公开接口刷新）</h4>
       <div class="tbl-wrap">
         <table class="tb" style="min-width:720px;">
           <thead>
@@ -495,7 +489,7 @@
 
       <h4>二、真实数据的接入方式（已实现）</h4>
       <p><b style="color:#dbe6f5">直连优先</b>：页面底部加载器直接请求东方财富 push2 / push2his / datacenter-web 三个域名（均已实测开放 CORS），在浏览器内组装成与内置 <span class="mono kv">DATA</span> 相同的结构后调用 <span class="mono kv">SMF.update()</span> 渲染，图表配置零改动；交易时段每 60 秒、非交易时段每 300 秒自动刷新。</p>
-      <p><b style="color:#dbe6f5">快照兜底</b>：直连失败（网络受限、接口临时故障）时自动改读同仓库的 <span class="mono kv">data.json</span>——由 GitHub Actions 运行 <span class="mono kv">scripts/fetch_snapshot.py</span> 在交易时段每 10 分钟生成，口径与前端直连完全一致。</p>
+      <p><b style="color:#dbe6f5">快照先行</b>：页面打开时先展示浏览器本地留存的上次数据（没有留存时读同仓库的 <span class="mono kv">data.json</span> 快照）立即渲染，不再空白等待直连；随后直连东方财富刷新为实时数据，直连失败就停在已有数据上并自动重试，旧快照不会覆盖更新的数据。快照由 GitHub Actions 运行 <span class="mono kv">scripts/fetch_snapshot.py</span> 在交易时段每 10 分钟生成，口径与前端直连完全一致。顶栏「刷新最新数据」按钮可随时手动直连刷新一次。</p>
       <p><b style="color:#dbe6f5">状态可见</b>：顶部徽标实时标注当前数据状态（实时数据 / 快照数据 / 模拟数据），两融与龙虎榜的截至日期写在各周期 stamp 里，不会把 T+1 数据冒充实时。</p>
 
       <h4>三、信号判定逻辑（页面内自动计算，非人工标注）</h4>
@@ -525,7 +519,7 @@
 
   <footer>
     A股主力资金流向多维监测看板 · v2.0 · 深色金融主题 / 红涨绿跌（#ef4444 涨·流入 / #10b981 跌·流出）<br>
-    数据来自东方财富公开接口，盘中每 60 秒自动刷新；两融 T+1、龙虎榜为最近交易日，均已在页内标注；不构成投资建议。<br>收盘日报存档：<a href="https://github.com/zsy0216/smf-dashboard/tree/main/reports" style="color:#8b9bb4;">reports/</a>（每个交易日 15:05 自动生成）
+    数据来自东方财富公开接口，盘中每 60 秒自动刷新；两融 T+1、龙虎榜为最近交易日，均已在页内标注；不构成投资建议。<br>收盘日报存档：<a href="https://github.com/zsy0216/smf-dashboard/tree/main/reports" style="color:#8b9bb4;">reports/</a>（自动生成已暂停）
   </footer>
 </main>
 
@@ -542,9 +536,9 @@
   var COLORS = {
     up: "#ef4444",       /* 上涨 / 净流入 */
     down: "#10b981",     /* 下跌 / 净流出 */
-    res: "#f43f5e",
+    res: "#a855f7",
     dist: "#f59e0b",
-    div: "#a855f7",
+    div: "#38bdf8",
     neu: "#64748b",
     gold: "#e0b64f",
     axis: "#8b9bb4",
@@ -698,9 +692,43 @@
     setText("dims-hint", "四维均值 " + avg + " 分 · 四维同步大于 60 视为资金共振；任一维度低于 50 即降杠杆");
   }
 
+  /* 半小时分段列（ETF/板块合并宽表共用）：表头字色调暗、尾盘列加粗；格着色与原矩阵一致 */
+  var SEG_HEADS = ["9:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30 尾盘"];
+  function segHeadHtml(tip) {
+    var html = "";
+    for (var c = 0; c < 8; c++) {
+      html += '<th style="color:#7d8ea8' + (c === 7 ? ";font-weight:800" : "") + '">' + SEG_HEADS[c];
+      if (c === 0 && tip) html += '<span class="info d l" tabindex="0" data-tip="' + tip + '">i</span>';
+      html += "</th>";
+    }
+    return html;
+  }
+  function segCellHtml(v, bold, maxAbs) {
+    if (v === null || v === undefined) return '<td class="num" style="color:#5b6b82">—</td>';
+    var a = Math.min(0.55, Math.abs(v) / maxAbs * 0.55 + 0.06);
+    var bg = v >= 0 ? "rgba(239,68,68," + a + ")" : "rgba(16,185,129," + a + ")";
+    return '<td class="num" style="background:' + bg + (bold ? ";font-weight:700" : "") + '">' + signNum(v, 1) + '</td>';
+  }
+  function segMaxAbs(rows) {
+    var m = 0;
+    rows.forEach(function (r) {
+      (r.seg8 || []).forEach(function (v) { if (v !== null && v !== undefined && Math.abs(v) > m) m = Math.abs(v); });
+    });
+    return m || 1;
+  }
+
   function renderEtfTable(D) {
-    var body = $("etfBody");
+    var head = $("etfHead"), body = $("etfBody");
     if (!body) return;
+    var hasSeg = false;
+    for (var h = 0; h < D.etf.length; h++) if (D.etf[h].seg8) { hasSeg = true; break; }
+    if (head) {
+      var hh = "<tr><th>ETF 名称</th><th>净流入</th><th>主力净占比</th><th>折溢价</th><th>规模</th>";
+      if (hasSeg) hh += segHeadHtml("每格是该半小时内的主力净流入：横向看哪只 ETF 在哪个时段被买，纵向比同一时段哪只最强；最后一列 14:30–15:00 即尾盘");
+      head.innerHTML = hh + "</tr>";
+    }
+    var maxAbs = hasSeg ? segMaxAbs(D.etf) : 1;
+    var sums = [null, null, null, null, null, null, null, null];
     var html = "";
     for (var i = 0; i < D.etf.length; i++) {
       var e = D.etf[i];
@@ -709,8 +737,22 @@
         + '<td class="num" style="font-weight:700;' + toneStyle(e.net) + '">' + signNum(e.net, 1) + '</td>'
         + '<td class="num" style="' + toneStyle(e.share) + '">' + signNum(e.share, 2) + '</td>'
         + '<td class="num" style="' + toneStyle(e.premium) + '">' + signNum(e.premium, 2) + '%</td>'
-        + '<td class="num" style="color:#b9c7db">' + e.aum.toFixed(0) + '</td>'
-        + "</tr>";
+        + '<td class="num" style="color:#b9c7db">' + e.aum.toFixed(0) + '</td>';
+      if (hasSeg) {
+        for (var c = 0; c < 8; c++) {
+          var v = e.seg8 ? e.seg8[c] : null;
+          if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
+          html += segCellHtml(v, false, maxAbs);
+        }
+      }
+      html += "</tr>";
+    }
+    if (hasSeg) {
+      html += '<tr><td><span style="font-weight:700">合计</span></td>'
+        + '<td class="num" style="color:#5b6b82">—</td><td class="num" style="color:#5b6b82">—</td>'
+        + '<td class="num" style="color:#5b6b82">—</td><td class="num" style="color:#5b6b82">—</td>';
+      for (var c2 = 0; c2 < 8; c2++) html += segCellHtml(sums[c2] === null ? null : Math.round(sums[c2] * 10) / 10, true, maxAbs);
+      html += "</tr>";
     }
     body.innerHTML = html;
 
@@ -720,9 +762,18 @@
   }
 
   function renderSectorTable(D) {
-    var body = $("sectorBody");
+    var head = $("sectorHead"), body = $("sectorBody");
     if (!body) return;
     var arr = D.sectors.slice().sort(function (a, b) { return b.big - a.big; });
+    var hasSeg = false;
+    for (var h = 0; h < arr.length; h++) if (arr[h].seg8) { hasSeg = true; break; }
+    if (head) {
+      var hh = '<tr><th>板块名称</th><th>涨跌幅</th><th>大单净流入(亿)</th><th>超大单净额(亿)</th><th style="text-align:center">资金信号</th>';
+      if (hasSeg) hh += segHeadHtml("今日主力净流入前 5 名板块带分段，每格是该半小时内的主力净流入（口径与板块表一致）：横向看哪个板块在哪个时段被买，纵向比同一时段哪家最强；最后一列 14:30–15:00 即尾盘");
+      head.innerHTML = hh + "</tr>";
+    }
+    var maxAbs = hasSeg ? segMaxAbs(arr) : 1;
+    var sums = [null, null, null, null, null, null, null, null];
     var html = "", pos = 0, neg = 0;
     for (var i = 0; i < arr.length; i++) {
       var s = arr[i];
@@ -734,8 +785,23 @@
         + '<td class="num" style="font-weight:700;' + toneStyle(s.big) + '">' + signNum(s.big, 1) + '</td>'
         + '<td class="num" style="' + toneStyle(s.margin) + '">' + signNum(s.margin, 1) + '</td>'
         + '<td style="text-align:center"><span class="tag tag-' + sig.k + '">' + esc(sig.t) + "</span>"
-        + '<div class="sub-note" style="margin-top:2px">量比 ' + s.vol.toFixed(2) + "</div></td>"
-        + "</tr>";
+        + '<div class="sub-note" style="margin-top:2px">量比 ' + s.vol.toFixed(2) + "</div></td>";
+      if (hasSeg) {
+        for (var c = 0; c < 8; c++) {
+          var v = s.seg8 ? s.seg8[c] : null;
+          if (v !== null && v !== undefined) sums[c] = (sums[c] === null ? 0 : sums[c]) + v;
+          html += segCellHtml(v, false, maxAbs);
+        }
+      }
+      html += "</tr>";
+    }
+    if (hasSeg) {
+      /* 合计行不带 data-bk、不可点（钻取委托只认带 data-bk 的行） */
+      html += '<tr><td><span style="font-weight:700">合计</span></td>'
+        + '<td class="num" style="color:#5b6b82">—</td><td class="num" style="color:#5b6b82">—</td>'
+        + '<td class="num" style="color:#5b6b82">—</td><td style="text-align:center;color:#5b6b82">—</td>';
+      for (var c2 = 0; c2 < 8; c2++) html += segCellHtml(sums[c2] === null ? null : Math.round(sums[c2] * 10) / 10, true, maxAbs);
+      html += "</tr>";
     }
     body.innerHTML = html;
     setHtml("sectorHdRight", "净流入合计 <b style='color:" + COLORS.up + "'>" + signNum(pos, 1) + "</b> 亿　净流出 <b style='color:" + COLORS.down + "'>" + signNum(neg, 1) + "</b> 亿");
@@ -804,8 +870,8 @@
       return;
     }
     var tc = mo.temp >= 60 ? COLORS.up : (mo.temp >= 45 ? COLORS.gold : COLORS.down);
-    function cell(k, v, color) {
-      return '<div class="sum-cell"><div class="k">' + k + '</div><div class="v num" style="color:' + color + '">' + v + "</div></div>";
+    function cell(k, v, color, tip, cls) {
+      return '<div class="sum-cell"><div class="k">' + k + (tip ? '<span class="' + (cls || "info") + '" tabindex="0" data-tip="' + tip + '">i</span>' : '') + '</div><div class="v num" style="color:' + color + '">' + v + "</div></div>";
     }
     body.innerHTML =
       '<div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:12px;">'
@@ -815,13 +881,13 @@
       + '<div style="flex:1;min-width:140px;height:8px;border-radius:99px;background:#0d1420;border:1px solid var(--line);overflow:hidden;"><i style="display:block;height:100%;width:' + mo.temp + '%;background:linear-gradient(90deg,#10b981,#e0b64f,#ef4444);"></i></div>'
       + "</div>"
       + '<div class="lhb-sum">'
-      + cell("涨停家数", mo.zt + " 家", COLORS.up)
-      + cell("跌停家数", mo.dt + " 家", COLORS.down)
-      + cell("炸板率", mo.zbRate.toFixed(1) + "%（炸板 " + mo.zb + " 家）", mo.zbRate >= 30 ? COLORS.down : COLORS.gold)
-      + cell("最高连板", mo.maxLbc + " 板", COLORS.gold)
+      + cell("涨停家数", mo.zt + " 家", COLORS.up, "当天涨停家数。涨停多、跌停少＝情绪热；跌停成片＝恐慌。和跌停家数对照着看。", "info l")
+      + cell("跌停家数", mo.dt + " 家", COLORS.down, "当天跌停家数。明显增多是恐慌信号；和涨停家数对照看情绪冷热。")
+      + cell("炸板率", mo.zbRate.toFixed(1) + "%（炸板 " + mo.zb + " 家）", mo.zbRate >= 30 ? COLORS.down : COLORS.gold, "涨停后又被砸开的比例。越高（超过30%）说明追高的人在被埋，资金接力意愿差。")
+      + cell("最高连板", mo.maxLbc + " 板", COLORS.gold, "连板梯队的最高高度，是短线赚钱效应的天花板。5板以上有龙头带队，只剩2板就是群龙无首。")
       + cell("连板梯队", "≥2板 " + mo.lb2 + " 家 · ≥3板 " + mo.lb3 + " 家", "#e6edf7")
-      + cell("涨停封板资金", mo.fundYi.toFixed(1) + " 亿", COLORS.up)
-      + (mo.adv != null ? cell("涨跌家数（沪深）", mo.adv + " 涨 / " + mo.dec + " 跌", mo.adv >= mo.dec ? COLORS.up : COLORS.down) : "")
+      + cell("涨停封板资金", mo.fundYi.toFixed(1) + " 亿", COLORS.up, "封在涨停板上的买单总金额。越多说明封板越有底气、不容易被砸开。")
+      + (mo.adv != null ? cell("涨跌家数（沪深）", mo.adv + " 涨 / " + mo.dec + " 跌", mo.adv >= mo.dec ? COLORS.up : COLORS.down, "赚钱效应的广度。指数涨但下跌家数更多，就是只涨权重、多数人亏钱。") : "")
       + (mo.upRatio != null ? cell("上涨占比", mo.upRatio.toFixed(1) + "%", mo.upRatio >= 50 ? COLORS.up : COLORS.down) : "")
       + (mo.yztAvg != null ? cell("昨涨停今表现（" + mo.yztN + " 只）", (mo.yztAvg > 0 ? "+" : "") + mo.yztAvg.toFixed(2) + "% · 红盘 " + mo.yztRed.toFixed(0) + "%", mo.yztAvg >= 0 ? COLORS.up : COLORS.down) : "")
       + "</div>";
@@ -865,7 +931,7 @@
     }
     if (!sigs.length) { bar.style.display = "none"; return; }
     bar.style.display = "block";
-    bar.innerHTML = '<b style="color:var(--gold);">异动信号</b>　' + sigs.map(function (s) {
+    bar.innerHTML = '<b style="color:var(--gold);">异动信号</b><span class="info l" tabindex="0" data-tip="规则触发的提醒：ETF转向、评分拐点、板块共振、情绪极端等。当闹钟用——响了去对应面板确认，别当买卖指令。">i</span>　' + sigs.map(function (s) {
       return '<span style="display:inline-block;margin:2px 6px 2px 0;padding:2px 10px;border:1px solid var(--line);border-radius:99px;background:#0d1420;">' + esc(s) + "</span>";
     }).join("");
   }
@@ -1000,7 +1066,7 @@
           borderRadius: v >= 0 ? [5, 5, 0, 0] : [0, 0, 5, 5],
           shadowBlur: 14, shadowColor: v >= 0 ? "rgba(239,68,68,.28)" : "rgba(16,185,129,.26)"
         },
-        label: { position: v >= 0 ? "top" : "bottom", color: v >= 0 ? "#ef4444" : "#10b981" }
+        label: { position: v >= 0 ? "top" : "insideBottom", color: v >= 0 ? "#ef4444" : "#e6f4ea" }
       });
     }
     return {
@@ -1071,11 +1137,22 @@
         }
       });
     }
+    /* 轴范围预留边距：symbolSize 放大后极值点的大气泡贴边会被切，先算范围再各向外扩 */
+    var xMin = 0, xMax = 0, yMin = 0, yMax = 0;
+    for (var j = 0; j < data.length; j++) {
+      if (data[j].value[0] < xMin) xMin = data[j].value[0];
+      if (data[j].value[0] > xMax) xMax = data[j].value[0];
+      if (data[j].value[1] < yMin) yMin = data[j].value[1];
+      if (data[j].value[1] > yMax) yMax = data[j].value[1];
+    }
+    var xPad = Math.max(0.5, (xMax - xMin) * 0.13);
+    var yPad = Math.max(2, (yMax - yMin) * 0.15);
+    /* 大泡先画、小泡压在上层，避免相近板块的大气泡互相盖住小气泡 */
     data.sort(function (a, b) { return b.value[2] - a.value[2]; });
     return {
       backgroundColor: "transparent",
       animationDuration: 700,
-      grid: { left: 6, right: 16, top: 30, bottom: 26, containLabel: true },
+      grid: { left: 6, right: 30, top: 38, bottom: 26, containLabel: true },
       tooltip: Object.assign(baseTooltip(), {
         trigger: "item",
         formatter: function (p) {
@@ -1092,6 +1169,8 @@
       }),
       xAxis: {
         type: "value",
+        min: Math.floor((xMin - xPad) * 10) / 10,
+        max: Math.ceil((xMax + xPad) * 10) / 10,
         name: "涨跌幅 %",
         nameLocation: "middle",
         nameGap: 22,
@@ -1103,6 +1182,8 @@
       },
       yAxis: {
         type: "value",
+        min: Math.floor(yMin - yPad),
+        max: Math.ceil(yMax + yPad),
         name: "大单净流入（亿元）",
         nameLocation: "end",
         nameGap: 12,
@@ -1114,14 +1195,15 @@
       },
       series: [{
         type: "scatter",
+        clip: true,
         data: data,
-        symbolSize: function (v) { return Math.min(50, 12 + Math.sqrt(v[2]) * 3.3); },
+        symbolSize: function (v) { return Math.min(48, 9 + Math.sqrt(v[2]) * 7); },
         label: {
           show: true, position: "top", distance: 6,
+          labelLayout: { hideOverlap: true },
           formatter: function (p) { return p.name; },
           color: "#c7d4e6", fontSize: 11
         },
-        labelLayout: { moveOverlap: "shiftY", hideOverlap: true },
         markLine: {
           silent: true,
           symbol: "none",
@@ -1229,6 +1311,7 @@
       charts.flow = window.echarts.init($("chartFlow"));
       echartsReady = true;
       renderCharts(DATA[state.period]);
+      try { renderFlow(); } catch (e) {}
       return true;
     } catch (e) {
       if (window.console) console.error("[charts] init failed", e);
@@ -1311,6 +1394,7 @@
         if (charts.etf) charts.etf.resize();
         if (charts.sector) charts.sector.resize();
         if (charts.lhb) charts.lhb.resize();
+        if (charts.flow) charts.flow.resize();
       }, 160);
     });
   }
@@ -1583,6 +1667,50 @@
     }
     return attempt();
   }
+  /* 宽基 ETF 半小时分段：分钟累计主力净额按 8 个半小时段作差（亿元）。
+     边界依次 10:00/10:30/11:00/11:30/13:30/14:00/14:30/最后，起点累计为 0；
+     某段尚无分钟线进入（最后一行时间 ≤ 该段起点）时该段为 null，
+     进行中的段算到最后一行为止。8 段之和 = 当日累计终值。 */
+  function seg8FromKlines(rows) {
+    if (!rows || !rows.length) return null;
+    var B = ["10:00", "10:30", "11:00", "11:30", "13:30", "14:00", "14:30"];
+    var S = ["09:30", "10:00", "10:30", "11:00", "13:00", "13:30", "14:00", "14:30"];
+    var cumB = [null, null, null, null, null, null, null];
+    var last = null, lastT = null;
+    for (var i = 0; i < rows.length; i++) {
+      var p = rows[i].split(",");
+      var t = p[0].slice(11, 16), v = parseFloat(p[1]);
+      if (!t || isNaN(v)) continue;
+      last = v; lastT = t;
+      for (var b = 0; b < B.length; b++) if (t <= B[b]) cumB[b] = v;
+    }
+    if (last === null) return null;
+    /* prev[s] = 第 s 段起点处的累计值（午休不推进：13:00 段起点取 11:30 累计） */
+    var prev = [0, cumB[0], cumB[1], cumB[2], cumB[3], cumB[4], cumB[5], cumB[6]];
+    var out = [];
+    for (var s2 = 0; s2 < 8; s2++) {
+      if (lastT <= S[s2]) { out.push(null); continue; }
+      var endV = (s2 === 7 || lastT <= B[s2]) ? last : cumB[s2];
+      out.push(round((endV - (prev[s2] || 0)) / YI, 1));
+    }
+    return out;
+  }
+  function fetchEtfSeg(secid) {
+    /* 60 秒内复用缓存，避免每轮刷新对 8 只 ETF 全量重拉分钟线触发限流 */
+    return cached("etfseg|" + secid, 60000, function () {
+      return fetchFlowKline(secid);
+    }, function (v) { return v && v.length > 0; }).then(function (rows) {
+      return seg8FromKlines(rows);
+    }).catch(function () { return null; });
+  }
+  function fetchSectorSeg(code) {
+    /* 与 fetchEtfSeg 同构：板块分钟线 secid 为 90.<代码>，缓存键独立避免冲突 */
+    return cached("secseg|90." + code, 60000, function () {
+      return fetchFlowKline("90." + code);
+    }, function (v) { return v && v.length > 0; }).then(function (rows) {
+      return seg8FromKlines(rows);
+    }).catch(function () { return null; });
+  }
   function fetchFlow() {
     return Promise.all([
       safe(fetchFlowKline("1.000001"), []),
@@ -1754,6 +1882,14 @@
       ETF_WATCH.forEach(function (s) {
         jobs.push(fflowDaily(s, 21).then(function (v) { etfFf[s] = v; }));
       });
+      var etfSeg = {};
+      ETF_WATCH.forEach(function (s) {
+        jobs.push(fetchEtfSeg(s).then(function (v) { etfSeg[s] = v; }));
+      });
+      var secSeg = {};
+      selections.today.slice(0, 5).forEach(function (b) {
+        jobs.push(fetchSectorSeg(b.f12).then(function (v) { secSeg[b.f12] = v; }));
+      });
       return Promise.all([Promise.all(jobs), moodP, flowP, stocksP]).then(function (r2) {
         var mood = r2[1], flowRes = r2[2], stocks = r2[3];
         var lhbDate = lhb ? lhb.date : "", lhbList = lhb ? lhb.list : [];
@@ -1788,12 +1924,14 @@
               ratio = null;
             } else { netV = (e[nf] || 0) / YI; ratio = e[rf]; }
             etfNetSum += netV;
-            etfRows.push({
+            var etfRow = {
               name: e.f14, code: e.f12, net: round(netV, 1),
               share: ratio === null || ratio === undefined ? 0 : round(ratio, 2),
               premium: e.f441 ? round((e.f2 / e.f441 - 1) * 100, 2) : 0,
               aum: round((e.f20 || 0) / YI)
-            });
+            };
+            if (pk === "today" && etfSeg[secid]) etfRow.seg8 = etfSeg[secid];
+            etfRows.push(etfRow);
           });
           var etfTurn = etfs.reduce(function (s, e) { return s + (e.f6 || 0); }, 0) / YI;
           var etfRatio = etfTurn ? etfNetSum / etfTurn * 100 : 0;
@@ -1816,6 +1954,11 @@
             else chg = b.f3 || 0;
             return { name: b.f14, code: b.f12, chg: round(chg, 2), big: round(big, 1), margin: round(sup, 1), vol: round(b.f10 || 0, 2) };
           });
+          if (pk === "today") {
+            secRows.slice().sort(function (a, b) { return b.big - a.big; }).slice(0, 5).forEach(function (r) {
+              if (secSeg[r.code]) r.seg8 = secSeg[r.code];
+            });
+          }
           var breadth = boards.filter(function (b) { return (b[nf] || 0) > 0; }).length / boards.length * 100;
           /* 四维评分 */
           var dEtf = clamp(50 + etfRatio * 3);
@@ -1965,26 +2108,132 @@
     var mins = d.getHours() * 60 + d.getMinutes();
     return (mins >= 555 && mins <= 692) || (mins >= 777 && mins <= 905); /* 9:15-11:32 / 12:57-15:05 */
   }
+  var currentDataAt = 0;
+  var CACHE_KEY = "smf-cache-v1";
+  /* 保存前补全：同日旧缓存里有、而新数据缺失的分时曲线与分段数据带过来，
+     避免某轮直连接口失败产出的残缺数据把完整缓存覆盖掉。只补缺失，绝不覆盖新数据已有的。 */
+  function fillCacheGaps(map) {
+    var changed = false;
+    try {
+      if (!map || !map.today) return false;
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return false;
+      var old = JSON.parse(raw);
+      if (!old || !old.data || !old.data.today) return false;
+      var nt = map.today, ot = old.data.today;
+      var nd = nt.mood && nt.mood.date, od = ot.mood && ot.mood.date;
+      var sameDay;
+      if (nd && od) {
+        sameDay = nd === od;
+      } else {
+        /* 任一缺 mood.date 时退化判定：旧缓存的保存时刻与现在是同一本地自然日 */
+        if (!old.at) return false;
+        var a = new Date(old.at), b = new Date();
+        sameDay = a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+      }
+      if (!sameDay) return false;
+      if ((!nt.flow || !nt.flow.times || !nt.flow.times.length) && ot.flow && ot.flow.times && ot.flow.times.length) {
+        nt.flow = ot.flow; changed = true;
+      }
+      if ((!nt.flowDaily || !nt.flowDaily.length) && ot.flowDaily && ot.flowDaily.length) {
+        nt.flowDaily = ot.flowDaily; changed = true;
+      }
+      function fillSeg(newRows, oldRows) {
+        if (!newRows || !oldRows) return;
+        var byCode = {}, i, r;
+        for (i = 0; i < oldRows.length; i++) { r = oldRows[i]; if (r && r.code && r.seg8) byCode[r.code] = r.seg8; }
+        for (i = 0; i < newRows.length; i++) {
+          r = newRows[i];
+          if (r && !r.seg8 && r.code && byCode[r.code]) { r.seg8 = byCode[r.code]; changed = true; }
+        }
+      }
+      fillSeg(nt.etf, ot.etf);
+      fillSeg(nt.sectors, ot.sectors);
+    } catch (e) { return changed; }
+    return changed;
+  }
+  function saveCache(map) {
+    var changed = false;
+    try { changed = fillCacheGaps(map); } catch (e) {}
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ at: currentDataAt, data: map }));
+      var back = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (!back || !back.data || !back.data.today) {
+        if (window.console) console.warn("[SMF] 缓存写入后校验未通过，内容可能不完整");
+      }
+    } catch (e) {
+      /* 写入失败（如配额）：只警告，旧缓存保持原样，不向调用方抛错 */
+      if (window.console) console.warn("[SMF] 缓存写入失败，保留旧缓存", e);
+    }
+    if (changed) {
+      /* map 与屏上 DATA 同引用，补全结果同步重渲染一次（refresh 只渲染不保存，无循环） */
+      try { if (window.SMF && window.SMF.refresh) window.SMF.refresh(); } catch (e) {}
+    }
+  }
+  function renderCache() {
+    try {
+      var raw = localStorage.getItem(CACHE_KEY);
+      if (!raw) return false;
+      var c = JSON.parse(raw);
+      if (!c || !c.data || !c.at) return false;
+      if (Date.now() - c.at > 24 * 3600 * 1000) return false;
+      window.SMF.update(c.data);
+      currentDataAt = c.at;
+      lastOkAt = new Date();
+      var d = new Date(c.at);
+      function p(n) { return n < 10 ? "0" + n : "" + n; }
+      var t = d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes()) + ":" + p(d.getSeconds());
+      setStatus("snap", "本地缓存 · " + t);
+      setStamp(t + "（本地缓存）");
+      return true;
+    } catch (e) { return false; }
+  }
   function applyLive(map) {
     window.SMF.update(map);
     lastOkAt = new Date();
+    currentDataAt = Date.now();
+    saveCache(map);
     setStatus("live", "实时数据 · 东方财富");
     setStamp(nowStr() + "（直连刷新）");
   }
   function loadSnapshot() {
     return fetchJson("data.json?_=" + Date.now(), 8000).then(function (j) {
       if (!j || !j.data) throw new Error("快照格式不对");
+      var snapAt = Date.parse((j.updated_at || "").replace(" ", "T")) || 0;
+      if (currentDataAt && snapAt && snapAt <= currentDataAt) {
+        /* 屏上已有更新的数据（实时/本地缓存），旧快照不倒灌覆盖 */
+        return;
+      }
       window.SMF.update(j.data);
       lastOkAt = new Date();
-      setStatus("snap", "快照数据 · " + (j.updated_at || ""));
+      currentDataAt = snapAt || Date.now();
+      saveCache(j.data);
+      var srcTag = (j.source && j.source.indexOf("新浪") >= 0) ? "（新浪备选）" : "";
+      setStatus("snap", "快照数据" + srcTag + " · " + (j.updated_at || ""));
       setStamp((j.updated_at || "") + "（快照兜底）");
     });
   }
   var loading = false;
+  function withDeadline(promise, ms) {
+    return Promise.race([promise, new Promise(function (_, reject) {
+      setTimeout(function () { reject(new Error("整体超时 " + ms + "ms")); }, ms);
+    })]);
+  }
   function load(isFirst) {
     if (loading || document.hidden) { schedule(); return; }
     loading = true;
-    buildData().then(applyLive).catch(function (e) {
+    /* 首屏先渲染仓库快照（同源、快）：页面不等直连结果，直连成功后再无缝替换为实时数据 */
+    var firstPaint = Promise.resolve();
+    if (isFirst && !lastOkAt) {
+      renderCache();
+      firstPaint = loadSnapshot().catch(function () {});
+    } else if (!isFirst) {
+      /* 每轮自动刷新先拉一次最新快照，与手动点「刷新最新数据」的第一步一致：
+         直连慢或失败时页面也能先跟上仓库快照进度，不必干等直连结果；
+         loadSnapshot 内有新鲜度守卫，旧快照不会覆盖屏上更新的实时数据 */
+      loadSnapshot().catch(function () {});
+    }
+    firstPaint.then(function () { return withDeadline(buildData(), 25000); }).then(applyLive).catch(function (e) {
       if (window.console) console.warn("[SMF] 直连失败，尝试快照", e);
       /* 直连失败时每一轮都重新拉一次快照：仓库里的快照会持续更新，
          不能停在第一次兜底的那一版上（否则页面会永远显示旧时间戳） */
@@ -1999,7 +2248,7 @@
         }
         setStatus("live", "刷新失败 · 显示 " + nowStr().slice(11) + " 前数据");
       });
-    }).catch(function () {}).finally(function () { loading = false; schedule(); });
+    }).catch(function () {}).finally(function () { loading = false; setBtnBusy(false); schedule(); });
   }
   var timer = null;
   function schedule() {
@@ -2008,6 +2257,24 @@
   }
   document.addEventListener("visibilitychange", function () {
     if (!document.hidden && lastOkAt && (Date.now() - lastOkAt.getTime() > 90000)) load(false);
+  });
+  var refreshBtn = document.getElementById("refreshBtn");
+  function setBtnBusy(b) {
+    if (!refreshBtn) return;
+    refreshBtn.disabled = b;
+    refreshBtn.textContent = b ? "正在刷新…" : "刷新最新数据";
+    refreshBtn.style.opacity = b ? "0.6" : "1";
+  }
+  if (refreshBtn) refreshBtn.addEventListener("click", function () {
+    /* 先秒拉一次最新快照（仓库里有更新就立刻换上），再走直连刷新 */
+    loadSnapshot().catch(function () {});
+    if (loading) {
+      refreshBtn.textContent = "正在刷新…";
+      setTimeout(function () { if (!loading) setBtnBusy(false); }, 1200);
+      return;
+    }
+    setBtnBusy(true);
+    load(false);
   });
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { load(true); });
