@@ -1149,6 +1149,16 @@
     var yPad = Math.max(2, (yMax - yMin) * 0.15);
     /* 大泡先画、小泡压在上层，避免相近板块的大气泡互相盖住小气泡 */
     data.sort(function (a, b) { return b.value[2] - a.value[2]; });
+    /* 近重合点标签分位：坐标几乎相同的板块（如「通信」与「通信设备」同涨幅同净额）
+       标签必然叠字，把后一个点的标签改到气泡下方与前者上下分开（只挪标签、不动数据点） */
+    var xRange = (xMax - xMin) + xPad * 2, yRange = (yMax - yMin) + yPad * 2;
+    for (var m = 1; m < data.length; m++) {
+      for (var n = 0; n < m; n++) {
+        var dx = Math.abs(data[m].value[0] - data[n].value[0]) / xRange;
+        var dy = Math.abs(data[m].value[1] - data[n].value[1]) / yRange;
+        if (dx < 0.06 && dy < 0.08) { data[m].label = { position: "bottom", distance: 4 }; break; }
+      }
+    }
     return {
       backgroundColor: "transparent",
       animationDuration: 700,
