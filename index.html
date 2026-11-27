@@ -1197,13 +1197,13 @@
         type: "scatter",
         clip: true,
         data: data,
-        symbolSize: function (v) { return Math.min(48, 9 + Math.sqrt(v[2]) * 7); },
+        symbolSize: function (v) { return Math.min(42, 9 + Math.sqrt(v[2]) * 6); },
         label: {
           show: true, position: "top", distance: 6,
-          labelLayout: { hideOverlap: true },
           formatter: function (p) { return p.name; },
           color: "#c7d4e6", fontSize: 11
         },
+        labelLayout: { moveOverlap: "shiftY", hideOverlap: true },
         markLine: {
           silent: true,
           symbol: "none",
