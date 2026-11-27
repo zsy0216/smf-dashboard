@@ -276,9 +276,10 @@
   <!-- ======================= KPI ======================= -->
   <section class="grid-kpi fade-in" aria-label="核心指标">
     <div class="panel kpi">
-      <div class="kpi-label">全市场两市成交额<span class="kpi-note" id="kpi-turnover-scope">单日</span><span class="info d l" tabindex="0" data-tip="全市场今天成交了多少钱，看量能。和昨日同时段比：放量上涨才健康，缩量上涨要留个心眼。">i</span></div>
+      <div class="kpi-label">全市场两市成交额<span class="kpi-note" id="kpi-turnover-scope">单日</span><span class="info d l" tabindex="0" data-tip="全市场今天成交了多少钱，看量能。和昨日同时段比：放量上涨才健康，缩量上涨要留个心眼。第二行的「预计全天」是按昨日同时段成交占全天的比例推算的，越接近收盘越准，开盘头几分钟误差大。">i</span></div>
       <div class="kpi-val"><span class="v num" id="kpi-turnover">--</span><span class="u" id="kpi-turnover-unit">万亿</span></div>
       <div class="kpi-sub"><span class="num" id="kpi-turnover-chg">--</span><span id="kpi-turnover-hint">较前一交易日</span></div>
+      <div id="kpi-turnover-extra" style="font-size:11px;color:var(--dim);margin-top:3px;min-height:14px;"></div>
       <div class="spark" id="spark-turnover"></div>
     </div>
     <div class="panel kpi">
@@ -551,7 +552,7 @@
       return {
         label: label, scope: scope, stamp: "正在加载真实数据…",
         kpi: {
-          turnover: { v: 0, unit: "万亿", chg: 0, chgUnit: "%", hint: "正在加载" },
+          turnover: { v: 0, unit: "万亿", chg: 0, chgUnit: "%", hint: "正在加载", diffYi: null, predWan: null, predVs: null },
           etf: { v: 0, chg: 0, chgUnit: "%", hint: "正在加载" },
           margin: { v: 0, chg: 0, hint: "正在加载" },
           score: { v: 0, level: "加载中", tone: "neu", hint: "四维加权" }
@@ -632,6 +633,22 @@
       tChg.className = "num " + tone(k.turnover.chg);
     }
     setText("kpi-turnover-hint", k.turnover.hint);
+    var tEx = $("kpi-turnover-extra");
+    if (tEx) {
+      var exParts = [];
+      if (k.turnover.diffYi !== null && k.turnover.diffYi !== undefined) {
+        exParts.push(k.turnover.diffYi >= 0
+          ? "放量 +" + k.turnover.diffYi.toLocaleString("zh-CN") + " 亿"
+          : "缩量 -" + Math.abs(k.turnover.diffYi).toLocaleString("zh-CN") + " 亿");
+      }
+      if (k.turnover.predWan !== null && k.turnover.predWan !== undefined) {
+        exParts.push("预计全天 " + k.turnover.predWan.toFixed(2) + " 万亿"
+          + (k.turnover.predVs !== null && k.turnover.predVs !== undefined
+             ? "（较昨日全天 " + signNum(k.turnover.predVs, 1) + "%）" : ""));
+      }
+      tEx.textContent = exParts.join(" · ");
+      tEx.style.display = exParts.length ? "" : "none";
+    }
 
     setText("kpi-etf", signNum(k.etf.v, 1));
     var eChg = $("kpi-etf-chg");
@@ -1918,11 +1935,20 @@
         Object.keys(PERIODS).forEach(function (pk) {
           var n = PERIODS[pk], nf = NET_FIELD[pk], rf = RATIO_FIELD[pk];
           /* 成交额 */
-          var tV, tChg, tHint;
+          var tV, tChg, tHint, tDiff = null, tPred = null, tPredVs = null;
           if (pk === "today") {
             tV = amounts[amounts.length - 1];
-            if (turnover.prevSameTime) { tChg = (tV / turnover.prevSameTime - 1) * 100; tHint = "较昨日同时段累计"; }
-            else { tChg = (tV / amounts[amounts.length - 2] - 1) * 100; tHint = "较前一交易日全天"; }
+            var prevFull = amounts[amounts.length - 2];
+            if (turnover.prevSameTime) {
+              tChg = (tV / turnover.prevSameTime - 1) * 100; tHint = "较昨日同时段累计";
+              tDiff = (tV - turnover.prevSameTime) / YI;
+              /* 全天预测：按昨日同时段成交占昨日全天的比例推算今日全天 */
+              var pace = prevFull ? turnover.prevSameTime / prevFull : 0;
+              if (pace > 0.02 && pace <= 1) { tPred = tV / pace; tPredVs = (tPred / prevFull - 1) * 100; }
+            } else {
+              tChg = (tV / prevFull - 1) * 100; tHint = "较前一交易日全天";
+              tDiff = (tV - prevFull) / YI;
+            }
           } else {
             var cur = amounts.slice(-n), prev = amounts.slice(-2 * n, -n);
             tV = cur.reduce(function (s, x) { return s + x; }, 0) / n;
@@ -2001,7 +2027,10 @@
             scope: scope,
             stamp: scope + "口径 · 板块/ETF 为主力净额 · 融资截至 " + marginDate + " · 龙虎榜 " + lhbDate,
             kpi: {
-              turnover: { v: round(tV / 1e12, 2), unit: "万亿", chg: round(tChg, 1), chgUnit: "%", hint: tHint },
+              turnover: { v: round(tV / 1e12, 2), unit: "万亿", chg: round(tChg, 1), chgUnit: "%", hint: tHint,
+                diffYi: tDiff === null ? null : Math.round(tDiff),
+                predWan: tPred === null ? null : round(tPred / 1e12, 2),
+                predVs: tPredVs === null ? null : round(tPredVs, 1) },
               etf: { v: round(etfNetSum, 1), chg: round(etfRatio, 1), chgUnit: "%", hint: "主力净额占成交额比" },
               margin: { v: round(mNet, 1), chg: round(mBalChg, 1), hint: "融资余额变动 · 截至 " + marginDate },
               score: { v: score, level: level, tone: score >= 55 ? "up" : score >= 45 ? "neu" : "down", hint: "四维加权" }

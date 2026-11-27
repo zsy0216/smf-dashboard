@@ -678,14 +678,23 @@ def build():
     for pk, n in PERIODS.items():
         nf, rf = NET_FIELD[pk], RATIO_FIELD[pk]
         # 成交额：周期内日均 vs 前一周期日均；today 为当日 vs 昨日
+        t_diff = t_pred = t_pred_vs = None
         if pk == "today":
             t_v = amounts[-1]
+            prev_full = amounts[-2]
             if prev_same_time:  # 盘中：与昨日同时段累计比较
                 t_chg = (t_v / prev_same_time - 1) * 100
                 t_hint = "较昨日同时段累计"
+                t_diff = (t_v - prev_same_time) / YI
+                # 全天预测：按昨日同时段成交占昨日全天的比例推算（与前端直连同口径）
+                pace = (prev_same_time / prev_full) if prev_full else 0
+                if 0.02 < pace <= 1:
+                    t_pred = t_v / pace
+                    t_pred_vs = (t_pred / prev_full - 1) * 100
             else:  # 收盘后/分时不可用：与昨日全天比较
                 t_chg = (t_v / amounts[-2] - 1) * 100
                 t_hint = "较前一交易日全天"
+                t_diff = (t_v - prev_full) / YI
         else:
             cur = amounts[-n:]
             prev = amounts[-2 * n:-n]
@@ -778,7 +787,10 @@ def build():
             "stamp": stamp,
             "kpi": {
                 "turnover": {"v": round(t_v / 1e12, 2), "unit": "万亿",
-                             "chg": round(t_chg, 1), "chgUnit": "%", "hint": t_hint},
+                             "chg": round(t_chg, 1), "chgUnit": "%", "hint": t_hint,
+                             "diffYi": (round(t_diff) if t_diff is not None else None),
+                             "predWan": (round(t_pred / 1e12, 2) if t_pred is not None else None),
+                             "predVs": (round(t_pred_vs, 1) if t_pred_vs is not None else None)},
                 "etf": {"v": round(etf_net_sum, 1), "chg": round(etf_ratio, 1),
                         "chgUnit": "%", "hint": "主力净额占成交额比"},
                 "margin": {"v": round(m_net, 1), "chg": round(m_bal_chg, 1),

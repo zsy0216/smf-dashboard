@@ -32,7 +32,12 @@ lines.append("")
 lines.append("## 市场总览")
 lines.append("")
 to = kpi["turnover"]
-lines.append(f"- **两市成交额**：{to['v']} {to['unit']}（{to['hint']} {to['chg']:+.1f}{to['chgUnit']}）")
+_tline = f"- **两市成交额**：{to['v']} {to['unit']}（{to['hint']} {to['chg']:+.1f}{to['chgUnit']}）"
+if to.get("diffYi") is not None:
+    _tline += f"，{'放量' if to['diffYi'] >= 0 else '缩量'} {abs(to['diffYi']):,} 亿"
+if to.get("predWan") is not None:
+    _tline += f"；预计全天 {to['predWan']:.2f} 万亿"
+lines.append(_tline)
 lines.append(f"- **宽基 ETF 合计主力净额**：{kpi['etf']['v']:+.1f} 亿（{kpi['etf']['hint']} {kpi['etf']['chg']:+.1f}{kpi['etf']['chgUnit']}）")
 lines.append(f"- **融资净买入**：{kpi['margin']['v']:+.1f} 亿（{kpi['margin']['hint']}）")
 lines.append(f"- **主力合力评分**：{kpi['score']['v']} 分（{kpi['score']['level']}）")
